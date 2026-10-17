@@ -274,17 +274,15 @@ function HomePage() {
             </a>
           </div>
 
-          <div className="furokidz-art" aria-label="Furokidz artwork placeholder">
-            <div className="furo-circle circle-one" />
-            <div className="furo-circle circle-two" />
-            <div className="furo-circle circle-three" />
-            <div className="furo-label">
-              A WORLD OF
-              <br />
-              IMAGINATION ✳
-            </div>
-            <span className="furo-smiley">☺</span>
+
+          <div className="furokidz-art">
+            <img
+              src="/images/furokidz.jpg"
+              alt="Furokidz"
+              className="furokidz-art-image"
+            />
           </div>
+
         </section>
 
         {/* CONTACT */}
