@@ -1,0 +1,371 @@
+/* =========================================
+   3D ART GALLERY
+   Layout utama mengikuti SiteLayout + App.css
+   CSS ini hanya mengatur komponen galeri.
+========================================= */
+
+/* Warna khusus komponen galeri */
+.gallery3d-page {
+  --gallery-muted: var(--text-secondary, #777);
+  --gallery-border: var(--border, #e3e0da);
+  --gallery-surface: var(--surface, #eeece7);
+  --gallery-button-bg: var(--button-bg, #202020);
+  --gallery-button-text: var(--button-text, #fff);
+
+  min-width: 0;
+}
+
+/* Heading galeri */
+.gallery3d-content {
+  margin-top: 84px;
+  padding-bottom: 80px;
+}
+
+.gallery3d-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+.gallery3d-heading h2 {
+  margin: 10px 0 0;
+  font-size: clamp(27px, 4vw, 42px);
+  font-weight: 750;
+  line-height: 1.12;
+  letter-spacing: -0.04em;
+}
+
+.gallery3d-count,
+.gallery3d-year {
+  color: var(--gallery-muted);
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+
+.gallery3d-count {
+  flex-shrink: 0;
+  padding-bottom: 4px;
+}
+
+/* Filter */
+.gallery3d-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 35px;
+}
+
+.gallery3d-filter {
+  padding: 10px 17px;
+  border: 1px solid var(--gallery-border);
+  border-radius: 30px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.gallery3d-filter:hover,
+.gallery3d-filter.active {
+  color: var(--gallery-button-text);
+  background: var(--gallery-button-bg);
+  border-color: var(--gallery-button-bg);
+}
+
+.gallery3d-filter:focus-visible,
+.gallery3d-card:focus-visible {
+  outline: 2px solid #3478ff;
+  outline-offset: 4px;
+}
+
+/* Grid proyek */
+.gallery3d-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 35px 22px;
+}
+
+.gallery3d-card {
+  display: block;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.gallery3d-card-image {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  background: var(--gallery-surface);
+}
+
+.gallery3d-card-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.45s ease;
+}
+
+.gallery3d-card:hover .gallery3d-card-image img {
+  transform: scale(1.045);
+}
+
+.gallery3d-card-number {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  padding: 6px 9px;
+  background: rgba(20, 20, 20, 0.68);
+  color: #fff;
+  font-size: 10px;
+}
+
+.gallery3d-card-open {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  color: #202020;
+  opacity: 0;
+  transform: translateY(5px);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.gallery3d-card:hover .gallery3d-card-open,
+.gallery3d-card:focus-visible .gallery3d-card-open {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Informasi proyek */
+.gallery3d-card-info {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 16px;
+}
+
+.gallery3d-card-info h3 {
+  margin: 7px 0 0;
+  color: inherit;
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.gallery3d-card-info .project-category,
+.gallery3d-lightbox-info .project-category {
+  color: var(--gallery-muted);
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.gallery3d-year {
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+/* Loading, error, dan empty state */
+.gallery3d-message,
+.gallery3d-empty {
+  padding: 60px 20px;
+  color: var(--gallery-muted);
+  text-align: center;
+}
+
+.gallery3d-empty h2 {
+  margin: 0 0 12px;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.gallery3d-empty p {
+  max-width: 520px;
+  margin: 0 auto;
+  line-height: 1.8;
+}
+
+/* Lightbox */
+.gallery3d-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  padding: 55px 20px 25px;
+  background: rgba(0, 0, 0, 0.92);
+}
+
+.gallery3d-lightbox-close {
+  position: fixed;
+  top: 18px;
+  right: 22px;
+  z-index: 2;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid #555;
+  border-radius: 50%;
+  background: #222;
+  color: #fff;
+  cursor: pointer;
+}
+
+.gallery3d-lightbox-content {
+  width: min(100%, 1050px);
+  color: #fff;
+}
+
+.gallery3d-lightbox-image {
+  position: relative;
+  display: grid;
+  min-height: 200px;
+  max-height: 68vh;
+  place-items: center;
+}
+
+.gallery3d-lightbox-image > img {
+  display: block;
+  max-width: 100%;
+  max-height: 68vh;
+  object-fit: contain;
+}
+
+.gallery3d-lightbox-arrow {
+  position: absolute;
+  top: 50%;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(30, 30, 30, 0.85);
+  color: #fff;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.gallery3d-lightbox-arrow.previous {
+  left: 12px;
+}
+
+.gallery3d-lightbox-arrow.next {
+  right: 12px;
+}
+
+.gallery3d-image-counter {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  padding: 7px 10px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  font-size: 12px;
+}
+
+.gallery3d-lightbox-info {
+  padding: 24px 0 10px;
+}
+
+.gallery3d-lightbox-info h2 {
+  margin: 9px 0;
+  color: #fff;
+  font-size: 28px;
+  line-height: 1.2;
+}
+
+.gallery3d-lightbox-info p {
+  max-width: 750px;
+  color: #ccc;
+  line-height: 1.7;
+}
+
+/* Tablet */
+@media (max-width: 850px) {
+  .gallery3d-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 30px 18px;
+  }
+
+  .gallery3d-content {
+    margin-top: 68px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 560px) {
+  .gallery3d-content {
+    margin-top: 55px;
+    padding-bottom: 55px;
+  }
+
+  .gallery3d-heading {
+    align-items: start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .gallery3d-heading h2 {
+    font-size: 28px;
+  }
+
+  .gallery3d-filters {
+    gap: 8px;
+    margin-bottom: 26px;
+  }
+
+  .gallery3d-filter {
+    padding: 9px 13px;
+    font-size: 11px;
+  }
+
+  .gallery3d-grid {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .gallery3d-card-open {
+    opacity: 1;
+    transform: none;
+  }
+
+  .gallery3d-lightbox {
+    padding: 60px 14px 20px;
+  }
+
+  .gallery3d-lightbox-info h2 {
+    font-size: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery3d-card-image img,
+  .gallery3d-card-open,
+  .gallery3d-filter {
+    transition: none;
+  }
+}
