@@ -277,7 +277,7 @@ function HomePage() {
 
           <div className="furokidz-art">
             <img
-              src="/images/furokidz.jpg"
+              src="/images/banner-furokidz.png"
               alt="Furokidz"
               className="furokidz-art-image"
             />
