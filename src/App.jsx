@@ -116,7 +116,7 @@ function HomePage() {
 
             <div className="art-panel panel-blue">
               <img
-                src="/public/harsa.png"
+                src="/images/harsa.png"
                 alt="Foto Maiharsa Muara"
                 className="hero-art-image"
               />
@@ -124,7 +124,7 @@ function HomePage() {
 
             <div className="art-panel panel-pink">
               <img
-                src="/public/3d.png"
+                src="/images/3d.png"
                 alt="Foto Maiharsa Muara"
                 className="hero-art-image"
               />
@@ -132,7 +132,7 @@ function HomePage() {
 
             <div className="art-panel panel-orange">
               <img
-                src="/public/foto.jpg"
+                src="/images/foto.jpg"
                 alt="Foto Maiharsa Muara"
                 className="hero-art-image"
               />
