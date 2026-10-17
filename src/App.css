@@ -1636,3 +1636,14 @@ a:focus-visible {
   font-size: 12px;
   opacity: 0.75;
 }
+
+.furokidz-logo {
+  width: 180px;
+  height: 180px;
+  object-fit: contain;
+  display: block;
+}
+
+.furokidz-symbol {
+  position: relative;
+}

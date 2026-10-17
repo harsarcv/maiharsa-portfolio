@@ -95,9 +95,16 @@ export default function Furokidz() {
         </h1>
 
         <div className="furokidz-hero-panel">
+
           <div className="furokidz-symbol">
-            F<span>✳</span>
+            <img
+              src="/images/furokidz-logo.jpg"
+              alt="Logo Furokidz"
+              className="furokidz-logo"
+            />
+            <span>✳</span>
           </div>
+
 
           <div>
             <span className="section-kicker">
@@ -141,11 +148,10 @@ export default function Furokidz() {
                   <button
                     key={platform}
                     type="button"
-                    className={`furokidz-filter ${
-                      selectedPlatform === platform
+                    className={`furokidz-filter ${selectedPlatform === platform
                         ? "active"
                         : ""
-                    }`}
+                      }`}
                     onClick={() => setSelectedPlatform(platform)}
                     aria-pressed={selectedPlatform === platform}
                   >
