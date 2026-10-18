@@ -14,6 +14,10 @@ import {
     getAdminFurokidz,
     saveFurokidz,
     deleteFurokidz,
+    getContactMessages,
+    markContactRead,
+    markContactUnread,
+    deleteContactMessage,
 } from "../api";
 
 const categories = {
@@ -102,6 +106,9 @@ export default function Admin() {
     const [furokidzImage, setFurokidzImage] = useState(null);
     const [furokidzSaving, setFurokidzSaving] = useState(false);
     const [furokidzMessage, setFurokidzMessage] = useState("");
+    const [contactMessages, setContactMessages] = useState([]);
+    const [contactMessage, setContactMessage] = useState("");
+    const [contactLoading, setContactLoading] = useState(false);
 
 
     const updateField = (field, value) => {
@@ -262,11 +269,62 @@ export default function Admin() {
         setProjects(data);
     }
 
+
+    async function loadContactMessages() {
+        setContactLoading(true);
+
+        try {
+            const data = await getContactMessages();
+            setContactMessages(data);
+            setContactMessage("");
+        } catch (error) {
+            setContactMessage(error.message || "Gagal memuat pesan.");
+        } finally {
+            setContactLoading(false);
+        }
+    }
+
+    async function handleToggleRead(item) {
+        try {
+            if (item.is_read) {
+                await markContactUnread(item.id);
+            } else {
+                await markContactRead(item.id);
+            }
+
+            await loadContactMessages();
+        } catch (error) {
+            setContactMessage(error.message || "Gagal memperbarui status pesan.");
+        }
+    }
+
+    async function handleDeleteContact(item) {
+        const confirmed = window.confirm(
+            `Hapus pesan dari "${item.sender_name}"?`
+        );
+
+        if (!confirmed) return;
+
+        try {
+            await deleteContactMessage(item.id);
+            await loadContactMessages();
+            setContactMessage("Pesan berhasil dihapus.");
+        } catch (error) {
+            setContactMessage(error.message || "Gagal menghapus pesan.");
+        }
+    }
+
+
     useEffect(() => {
         checkAdmin()
             .then(async () => {
                 setLoggedIn(true);
-                await Promise.all([loadProjects(), loadExperiences(), loadFurokidz()]);
+                await Promise.all([
+                    loadProjects(),
+                    loadExperiences(),
+                    loadFurokidz(),
+                    loadContactMessages()
+                ]);
             })
             .catch(() => setLoggedIn(false))
             .finally(() => setLoading(false));
@@ -518,6 +576,89 @@ export default function Admin() {
                     {message}
                 </p>
             )}
+
+
+            <section className="admin-panel">
+                <h2>
+                    Inbox Contact ({contactMessages.filter((item) => !item.is_read).length} belum dibaca)
+                </h2>
+
+                <p>Pesan yang dikirim melalui formulir Contact portofolio.</p>
+
+                {contactMessage && (
+                    <p className="admin-message" role="status">
+                        {contactMessage}
+                    </p>
+                )}
+
+                <button
+                    type="button"
+                    onClick={loadContactMessages}
+                    disabled={contactLoading}
+                >
+                    {contactLoading ? "Memuat..." : "Refresh pesan"}
+                </button>
+
+                {contactLoading && <p>Memuat pesan...</p>}
+
+                {!contactLoading && contactMessages.length === 0 && (
+                    <p>Belum ada pesan masuk.</p>
+                )}
+
+                {contactMessages.map((item) => (
+                    <article className="admin-project" key={item.id}>
+                        <div className="admin-project-info">
+                            <strong>
+                                {item.sender_name}
+                                {!item.is_read && " · BARU"}
+                            </strong>
+
+                            <span>{item.inquiry_type}</span>
+
+                            <a href={`mailto:${item.sender_email}`}>
+                                {item.sender_email}
+                            </a>
+
+                            <small>
+                                {new Date(item.submitted_at).toLocaleString("id-ID", {
+                                    dateStyle: "medium",
+                                    timeStyle: "short",
+                                })}
+                            </small>
+
+                            <p style={{ whiteSpace: "pre-wrap" }}>
+                                {item.message}
+                            </p>
+                        </div>
+
+                        <div className="admin-actions">
+                            <button
+                                type="button"
+                                onClick={() => handleToggleRead(item)}
+                            >
+                                {item.is_read ? "Tandai belum dibaca" : "Tandai dibaca"}
+                            </button>
+
+                            <a
+                                className="button-secondary"
+                                href={`mailto:${item.sender_email}?subject=${encodeURIComponent(
+                                    `Re: ${item.inquiry_type} - Portfolio`
+                                )}`}
+                            >
+                                Balas email
+                            </a>
+
+                            <button
+                                type="button"
+                                onClick={() => handleDeleteContact(item)}
+                            >
+                                Hapus
+                            </button>
+                        </div>
+                    </article>
+                ))}
+            </section>
+
 
             <section className="admin-panel">
                 <h2>Furokidz Content</h2>

@@ -437,4 +437,100 @@ router.delete("/furokidz/:id", adminAuth, async (req, res, next) => {
   }
 });
 
+
+/* =========================================
+   CONTACT INBOX
+========================================= */
+
+// Ambil semua pesan masuk
+router.get("/contact-messages", adminAuth, async (req, res, next) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, sender_name, sender_email, inquiry_type,
+              message, is_read, submitted_at
+       FROM contact_messages
+       ORDER BY submitted_at DESC`
+    );
+
+    res.json({ data: result.rows });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Tandai pesan sudah dibaca
+router.patch("/contact-messages/:id/read", adminAuth, async (req, res, next) => {
+  try {
+    const result = await pool.query(
+      `UPDATE contact_messages
+       SET is_read = TRUE
+       WHERE id = $1
+       RETURNING id, is_read`,
+      [req.params.id]
+    );
+
+    if (!result.rowCount) {
+      return res.status(404).json({
+        message: "Pesan tidak ditemukan.",
+      });
+    }
+
+    res.json({
+      message: "Pesan ditandai sudah dibaca.",
+      data: result.rows[0],
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Tandai pesan belum dibaca
+router.patch("/contact-messages/:id/unread", adminAuth, async (req, res, next) => {
+  try {
+    const result = await pool.query(
+      `UPDATE contact_messages
+       SET is_read = FALSE
+       WHERE id = $1
+       RETURNING id, is_read`,
+      [req.params.id]
+    );
+
+    if (!result.rowCount) {
+      return res.status(404).json({
+        message: "Pesan tidak ditemukan.",
+      });
+    }
+
+    res.json({
+      message: "Pesan ditandai belum dibaca.",
+      data: result.rows[0],
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Hapus pesan
+router.delete("/contact-messages/:id", adminAuth, async (req, res, next) => {
+  try {
+    const result = await pool.query(
+      `DELETE FROM contact_messages
+       WHERE id = $1
+       RETURNING id`,
+      [req.params.id]
+    );
+
+    if (!result.rowCount) {
+      return res.status(404).json({
+        message: "Pesan tidak ditemukan.",
+      });
+    }
+
+    res.json({ message: "Pesan berhasil dihapus." });
+  } catch (error) {
+    next(error);
+  }
+});
+
+
 module.exports = router;

@@ -214,3 +214,28 @@ export function deleteFurokidz(id) {
     method: "DELETE",
   });
 }
+
+
+export async function getContactMessages() {
+  const result = await adminRequest("/admin/contact-messages");
+  return result.data || [];
+}
+
+export function markContactRead(id) {
+  return adminRequest(`/admin/contact-messages/${id}/read`, {
+    method: "PATCH",
+  });
+}
+
+export function markContactUnread(id) {
+  return adminRequest(`/admin/contact-messages/${id}/unread`, {
+    method: "PATCH",
+  });
+}
+
+export function deleteContactMessage(id) {
+  return adminRequest(`/admin/contact-messages/${id}`, {
+    method: "DELETE",
+  });
+}
+
