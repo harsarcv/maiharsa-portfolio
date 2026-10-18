@@ -100,7 +100,7 @@ export default function Gallery3D() {
         <div className="page-eyebrow">SELECTED WORKS · 01</div>
 
         <h1 className="page-title">
-          3D Art &amp;
+          3D ART &amp;
           <br />
           <span className="text-accent">Modeling.</span>
         </h1>
