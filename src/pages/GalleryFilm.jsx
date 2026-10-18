@@ -138,29 +138,33 @@ export default function GalleryFilm() {
                   className="media-card"
                   key={project.id || project.slug}
                 >
+
                   <div className="media-frame">
-                    {embed ? (
-                      <iframe
-                        src={embed}
-                        title={project.title || "Video project"}
-                        loading="lazy"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        referrerPolicy="strict-origin-when-cross-origin"
-                        allowFullScreen
-                      />
-                    ) : project.thumbnail_url ? (
-                      <img
-                        src={project.thumbnail_url}
-                        alt={project.title || "Thumbnail karya"}
-                        loading="lazy"
-                      />
+                    {project.thumbnail_url ? (
+                      <a
+                        href={project.video_embed_url || "#"}
+                        target={project.video_embed_url ? "_blank" : undefined}
+                        rel="noopener noreferrer"
+                        aria-label={`Tonton ${project.title || "video"}`}
+                        className="media-thumbnail-link"
+                      >
+                        <img
+                          src={project.thumbnail_url}
+                          alt={project.title || "Thumbnail karya"}
+                          loading="lazy"
+                        />
+                        <span className="media-play-button">
+                          <Play size={28} fill="currentColor" />
+                        </span>
+                      </a>
                     ) : (
                       <div className="media-placeholder">
                         <Play size={30} />
-                        <span>Video belum tersedia untuk ditampilkan</span>
+                        <span>Thumbnail belum tersedia</span>
                       </div>
                     )}
                   </div>
+
 
                   <div className="media-card-body">
                     <div className="media-meta">
@@ -177,7 +181,7 @@ export default function GalleryFilm() {
                     <p className="media-role">
                       {project.role || ""}
                       {Array.isArray(project.tools) &&
-                      project.tools.length > 0
+                        project.tools.length > 0
                         ? ` · ${project.tools.join(", ")}`
                         : ""}
                     </p>
