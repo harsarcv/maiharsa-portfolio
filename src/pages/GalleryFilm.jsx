@@ -2,10 +2,48 @@ import { useEffect, useState } from "react";
 import { ArrowUpRight, Play } from "lucide-react";
 import SiteLayout from "../components/SiteLayout";
 import { getProjects } from "../api";
+
 function videoEmbed(url) {
   if (!url) return "";
-  try { const u = new URL(url); const host = u.hostname.replace(/^www\./, ""); if (host === "youtu.be") return `https://www.youtube-nocookie.com/embed/${u.pathname.slice(1)}`; if (host.endsWith("youtube.com")) { const id = u.searchParams.get("v") || u.pathname.split("/").filter(Boolean).pop(); return id ? `https://www.youtube-nocookie.com/embed/${id}` : ""; } if (host.endsWith("vimeo.com")) { const id = u.pathname.split("/").filter(Boolean).pop(); return id ? `https://player.vimeo.com/video/${id}` : ""; } } catch { return ""; } return "";
+
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, "");
+
+    if (host === "youtu.be") {
+      return `https://www.youtube-nocookie.com/embed/${u.pathname.slice(1)}`;
+    }
+
+    if (host === "youtube.com" || host === "m.youtube.com") {
+      const id =
+        u.searchParams.get("v") ||
+        u.pathname.split("/").filter(Boolean).pop();
+
+      return id
+        ? `https://www.youtube-nocookie.com/embed/${id}`
+        : "";
+    }
+
+    if (host === "vimeo.com" || host === "player.vimeo.com") {
+      const id = u.pathname.split("/").filter(Boolean).pop();
+
+      return id ? `https://player.vimeo.com/video/${id}` : "";
+    }
+
+    if (host === "instagram.com" || host === "instagr.am") {
+      const parts = u.pathname.split("/").filter(Boolean);
+
+      if (["reel", "reels", "p", "tv"].includes(parts[0]) && parts[1]) {
+        return `https://www.instagram.com/${parts[0]}/${parts[1]}/embed/`;
+      }
+    }
+  } catch {
+    return "";
+  }
+
+  return "";
 }
+
 export default function GalleryFilm() {
  const [items,setItems]=useState([]);const [loading,setLoading]=useState(true);const [error,setError]=useState("");
  useEffect(()=>{let alive=true;getProjects().then(d=>alive&&setItems(d.filter(p=>/film|video|filmmaking|aftermovie|motion/i.test(`${p.main_category||""} ${p.sub_category||""}`)||p.video_embed_url))).catch(e=>alive&&setError(e.message)).finally(()=>alive&&setLoading(false));return()=>{alive=false}},[]);
