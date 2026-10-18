@@ -33,11 +33,12 @@ export default function GalleryPhoto() {
       try {
         const data = await getProjects();
 
-        const photos = (Array.isArray(data) ? data : []).filter((p) =>
-          /photo|photography|street|cosplay|event|portrait/i.test(
-            `${p.main_category || ""} ${p.sub_category || ""}`
-          )
+
+        const photos = (Array.isArray(data) ? data : []).filter(
+          (p) =>
+            (p.main_category || "").trim().toLowerCase() === "photography"
         );
+
 
         if (alive) setItems(photos);
       } catch (err) {
@@ -99,9 +100,8 @@ export default function GalleryPhoto() {
               <button
                 key={filter.value}
                 type="button"
-                className={`filter-chip ${
-                  activeFilter === filter.value ? "active" : ""
-                }`}
+                className={`filter-chip ${activeFilter === filter.value ? "active" : ""
+                  }`}
                 onClick={() => setActiveFilter(filter.value)}
                 aria-pressed={activeFilter === filter.value}
               >
