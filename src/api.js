@@ -110,7 +110,9 @@ async function adminRequest(path, options = {}) {
   return data;
 }
 
+// ================================
 // ADMIN AUTH
+// ================================
 
 export function adminLogin(payload) {
   return adminRequest("/admin/login", {
@@ -129,7 +131,9 @@ export function adminLogout() {
   });
 }
 
+// ================================
 // ADMIN PROJECTS
+// ================================
 
 export async function getAdminProjects() {
   const result = await adminRequest("/projects");
@@ -152,18 +156,95 @@ export function deleteProject(id) {
   });
 }
 
+// ================================
 // UPLOAD GAMBAR
+// Kompres hanya jika file > 9 MiB
+// Upload langsung ke Cloudinary
+// ================================
 
+const CLOUDINARY_MAX_SIZE = 9 * 1024 * 1024;
+
+async function compressImageIfNeeded(file) {
+  // Foto kecil tidak diubah
+  if (file.size <= CLOUDINARY_MAX_SIZE) {
+    return file;
+  }
+
+  if (!file.type.startsWith("image/")) {
+    throw new Error("File harus berupa gambar.");
+  }
+
+  if (!("createImageBitmap" in window)) {
+    throw new Error(
+      "Browser tidak mendukung kompresi gambar otomatis."
+    );
+  }
+
+  const imageBitmap = await createImageBitmap(file);
+
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = imageBitmap.width;
+    canvas.height = imageBitmap.height;
+
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      throw new Error("Gagal memproses gambar di browser.");
+    }
+
+    context.drawImage(imageBitmap, 0, 0);
+
+    // Kompresi JPEG dengan kualitas bertahap
+    let quality = 0.9;
+    let blob = await new Promise((resolve) => {
+      canvas.toBlob(resolve, "image/jpeg", quality);
+    });
+
+    while (
+      blob &&
+      blob.size > CLOUDINARY_MAX_SIZE &&
+      quality > 0.5
+    ) {
+      quality = Math.max(0.5, quality - 0.1);
+
+      blob = await new Promise((resolve) => {
+        canvas.toBlob(resolve, "image/jpeg", quality);
+      });
+    }
+
+    if (!blob || blob.size > CLOUDINARY_MAX_SIZE) {
+      throw new Error(
+        "Foto masih terlalu besar setelah dikompres. " +
+        "Coba gunakan gambar dengan resolusi lebih rendah."
+      );
+    }
+
+    const fileName =
+      file.name.replace(/\.[^/.]+$/, "") + ".jpg";
+
+    return new File([blob], fileName, {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+  } finally {
+    imageBitmap.close();
+  }
+}
 
 export async function uploadProjectImage(file) {
-  // Minta signature dari backend
+  // Kompres otomatis jika diperlukan
+  const uploadFile = await compressImageIfNeeded(file);
+
+  // Minta signature upload dari backend
   const auth = await adminRequest("/admin/upload-signature", {
     method: "POST",
   });
 
   // Upload file langsung dari browser ke Cloudinary
   const body = new FormData();
-  body.append("file", file);
+
+  body.append("file", uploadFile);
   body.append("api_key", auth.apiKey);
   body.append("timestamp", String(auth.timestamp));
   body.append("signature", auth.signature);
@@ -177,11 +258,12 @@ export async function uploadProjectImage(file) {
     }
   );
 
-  const result = await response.json();
+  const result = await response.json().catch(() => ({}));
 
   if (!response.ok) {
     throw new Error(
-      result.error?.message || "Gagal mengunggah gambar ke Cloudinary."
+      result.error?.message ||
+      "Gagal mengunggah gambar ke Cloudinary."
     );
   }
 
@@ -190,9 +272,9 @@ export async function uploadProjectImage(file) {
   };
 }
 
-
+// ================================
 // ADMIN EXPERIENCES
-// Path diperbaiki: /api/admin/experiences
+// ================================
 
 export async function getAdminExperiences() {
   const result = await adminRequest("/admin/experiences");
@@ -217,7 +299,9 @@ export function deleteExperience(id) {
   });
 }
 
+// ================================
 // ADMIN FUROKIDZ
+// ================================
 
 export async function getAdminFurokidz() {
   const result = await adminRequest("/admin/furokidz");
@@ -242,6 +326,9 @@ export function deleteFurokidz(id) {
   });
 }
 
+// ================================
+// ADMIN CONTACT MESSAGES
+// ================================
 
 export async function getContactMessages() {
   const result = await adminRequest("/admin/contact-messages");
@@ -265,4 +352,3 @@ export function deleteContactMessage(id) {
     method: "DELETE",
   });
 }
-
