@@ -258,7 +258,9 @@ export default function Admin() {
                 slug: form.slug || slugify(form.title),
                 thumbnail_url: thumbnailUrl,
 
-                description: isPhotography ? "" : form.description,
+                description: isPhotography
+                    ? `Photography - ${form.sub_category}`
+                    : (form.description?.trim() || ""),
                 role: isPhotography ? "" : form.role,
 
                 tools: isPhotography
@@ -1498,7 +1500,7 @@ export default function Admin() {
                             {form.sub_category &&
                                 !(
                                     categories[
-                                        form.main_category
+                                    form.main_category
                                     ] || []
                                 ).includes(form.sub_category) && (
                                     <option value={form.sub_category}>
