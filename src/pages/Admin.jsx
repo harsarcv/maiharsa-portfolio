@@ -753,6 +753,81 @@ export default function Admin() {
 
     return (
         <main className="admin-page">
+            <style>{`
+                .admin-photo-grid {
+                    display: grid;
+                    grid-template-columns: repeat(4, minmax(0, 1fr));
+                    gap: 16px;
+                    align-items: start;
+                    margin-top: 18px;
+                }
+
+                .admin-photo-project {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+                    width: 100%;
+                    min-width: 0;
+                    padding: 10px;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 12px;
+                    background: #fff;
+                    box-sizing: border-box;
+                }
+
+                .admin-photo-project > img,
+                .admin-photo-placeholder {
+                    display: block;
+                    width: 100%;
+                    aspect-ratio: 4 / 5;
+                    object-fit: cover;
+                    border-radius: 8px;
+                }
+
+                .admin-photo-placeholder {
+                    display: grid;
+                    place-items: center;
+                    background: #f1f1f1;
+                    color: #555;
+                    font-size: 13px;
+                    text-align: center;
+                }
+
+                .admin-photo-project .admin-actions {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 8px;
+                }
+
+                .admin-photo-project .admin-actions > button {
+                    flex: 1;
+                    min-width: 0;
+                }
+
+                @media (max-width: 1000px) {
+                    .admin-photo-grid {
+                        grid-template-columns: repeat(3, minmax(0, 1fr));
+                    }
+                }
+
+                @media (max-width: 700px) {
+                    .admin-photo-grid {
+                        grid-template-columns: repeat(2, minmax(0, 1fr));
+                        gap: 10px;
+                    }
+                }
+
+                @media (max-width: 420px) {
+                    .admin-photo-grid {
+                        grid-template-columns: repeat(2, minmax(0, 1fr));
+                        gap: 7px;
+                    }
+
+                    .admin-photo-project {
+                        padding: 6px;
+                    }
+                }
+            `}</style>
             <header className="admin-header">
                 <div>
                     <h1>Portfolio Admin</h1>
@@ -1403,9 +1478,8 @@ export default function Admin() {
 
                 {isPhotography && (
                     <p>
-                        Mode Photography: pilih subkategori dan
-                        upload satu foto. Judul dan slug akan
-                        dibuat otomatis dari nama file.
+                        Upload foto langsung. Cukup pilih subkategori
+                        dan satu foto; judul dibuat otomatis dari nama file.
                     </p>
                 )}
 
@@ -1749,20 +1823,22 @@ export default function Admin() {
                     </>
                 )}
 
-                {/* Pilihan proyek unggulan tetap tersedia */}
-                <label className="admin-checkbox">
-                    <input
-                        type="checkbox"
-                        checked={form.is_featured}
-                        onChange={(event) =>
-                            updateField(
-                                "is_featured",
-                                event.target.checked
-                            )
-                        }
-                    />
-                    Proyek unggulan
-                </label>
+                {/* Fotografi hanya membutuhkan kategori, subkategori, dan foto */}
+                {!isPhotography && (
+                    <label className="admin-checkbox">
+                        <input
+                            type="checkbox"
+                            checked={form.is_featured}
+                            onChange={(event) =>
+                                updateField(
+                                    "is_featured",
+                                    event.target.checked
+                                )
+                            }
+                        />
+                        Proyek unggulan
+                    </label>
+                )}
 
                 <div className="admin-actions">
                     <button
@@ -1823,62 +1899,94 @@ export default function Admin() {
                     </p>
                 )}
 
-                {visibleProjects.map((project) => (
-                    <article
-                        className="admin-project"
-                        key={project.id}
-                    >
-                        {project.thumbnail_url && (
-                            <img
-                                src={project.thumbnail_url}
-                                alt=""
-                            />
-                        )}
-
-                        <div className="admin-project-info">
-                            <strong>{project.title}</strong>
-
-                            <span>
-                                {project.main_category}
-                                {project.sub_category
-                                    ? ` · ${project.sub_category}`
-                                    : ""}
-                            </span>
-
-                            <small>/{project.slug}</small>
-
-                            {project.video_embed_url && (
-                                <a
-                                    href={project.video_embed_url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                >
-                                    Buka video
-                                </a>
+                <div className={filter === "Photography" ? "admin-photo-grid" : ""}>
+                {visibleProjects.map((project) =>
+                    project.main_category === "Photography" ? (
+                        <article
+                            className="admin-project admin-photo-project"
+                            key={project.id}
+                        >
+                            {project.thumbnail_url ? (
+                                <img
+                                    src={project.thumbnail_url}
+                                    alt="Foto Photography"
+                                />
+                            ) : (
+                                <div className="admin-photo-placeholder">
+                                    Foto belum tersedia
+                                </div>
                             )}
-                        </div>
 
-                        <div className="admin-actions">
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    editProject(project)
-                                }
-                            >
-                                Edit
-                            </button>
+                            <div className="admin-actions">
+                                <button
+                                    type="button"
+                                    onClick={() => editProject(project)}
+                                >
+                                    Ganti Foto
+                                </button>
 
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    handleDelete(project)
-                                }
-                            >
-                                Hapus
-                            </button>
-                        </div>
-                    </article>
-                ))}
+                                <button
+                                    type="button"
+                                    onClick={() => handleDelete(project)}
+                                >
+                                    Hapus
+                                </button>
+                            </div>
+                        </article>
+                    ) : (
+                        <article
+                            className="admin-project"
+                            key={project.id}
+                        >
+                            {project.thumbnail_url && (
+                                <img
+                                    src={project.thumbnail_url}
+                                    alt=""
+                                />
+                            )}
+
+                            <div className="admin-project-info">
+                                <strong>{project.title}</strong>
+
+                                <span>
+                                    {project.main_category}
+                                    {project.sub_category
+                                        ? ` · ${project.sub_category}`
+                                        : ""}
+                                </span>
+
+                                <small>/{project.slug}</small>
+
+                                {project.video_embed_url && (
+                                    <a
+                                        href={project.video_embed_url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        Buka video
+                                    </a>
+                                )}
+                            </div>
+
+                            <div className="admin-actions">
+                                <button
+                                    type="button"
+                                    onClick={() => editProject(project)}
+                                >
+                                    Edit
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => handleDelete(project)}
+                                >
+                                    Hapus
+                                </button>
+                            </div>
+                        </article>
+                    )
+                )}
+                </div>
             </section>
         </main>
     );
