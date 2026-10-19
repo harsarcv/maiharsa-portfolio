@@ -37,31 +37,30 @@ router.get("/me", adminAuth, (req, res) => {
 });
 
 // UPLOAD GAMBAR KE CLOUDINARY
-router.post("/upload", adminAuth, (req, res, next) => {
-  upload.single("image")(req, res, async (err) => {
-    if (err) return res.status(400).json({ message: err.message });
+// Membuat signature untuk upload langsung ke Cloudinary
+router.post("/upload-signature", adminAuth, (req, res) => {
+  try {
+    const timestamp = Math.floor(Date.now() / 1000);
+    const folder = "portfolio/projects";
 
-    try {
-      if (!req.file) {
-        return res.status(400).json({ message: "Pilih gambar terlebih dahulu" });
-      }
+    const signature = cloudinary.utils.api_sign_request(
+      { timestamp, folder },
+      process.env.CLOUDINARY_API_SECRET
+    );
 
-      const result = await new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { folder: "portfolio/projects" },
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          }
-        );
-        stream.end(req.file.buffer);
-      });
-
-      res.json({ imageUrl: result.secure_url });
-    } catch (error) {
-      next(error);
-    }
-  });
+    res.json({
+      timestamp,
+      folder,
+      signature,
+      apiKey: process.env.CLOUDINARY_API_KEY,
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    });
+  } catch (error) {
+    console.error("Gagal membuat upload signature:", error.message);
+    res.status(500).json({
+      message: "Gagal menyiapkan upload gambar.",
+    });
+  }
 });
 // TAMBAH PROYEK
 router.post("/projects", adminAuth, async (req, res, next) => {

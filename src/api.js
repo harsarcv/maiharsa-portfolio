@@ -154,15 +154,42 @@ export function deleteProject(id) {
 
 // UPLOAD GAMBAR
 
-export function uploadProjectImage(file) {
-  const body = new FormData();
-  body.append("image", file);
 
-  return adminRequest("/admin/upload", {
+export async function uploadProjectImage(file) {
+  // Minta signature dari backend
+  const auth = await adminRequest("/admin/upload-signature", {
     method: "POST",
-    body,
   });
+
+  // Upload file langsung dari browser ke Cloudinary
+  const body = new FormData();
+  body.append("file", file);
+  body.append("api_key", auth.apiKey);
+  body.append("timestamp", String(auth.timestamp));
+  body.append("signature", auth.signature);
+  body.append("folder", auth.folder);
+
+  const response = await fetch(
+    `https://api.cloudinary.com/v1_1/${auth.cloudName}/image/upload`,
+    {
+      method: "POST",
+      body,
+    }
+  );
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      result.error?.message || "Gagal mengunggah gambar ke Cloudinary."
+    );
+  }
+
+  return {
+    imageUrl: result.secure_url,
+  };
 }
+
 
 // ADMIN EXPERIENCES
 // Path diperbaiki: /api/admin/experiences
