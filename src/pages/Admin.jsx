@@ -96,6 +96,7 @@ export default function Admin() {
     const [editingId, setEditingId] = useState(null);
     const [image, setImage] = useState(null);
     const [galleryImages, setGalleryImages] = useState([]);
+    const [photoPreviews, setPhotoPreviews] = useState([]);
     const [saving, setSaving] = useState(false);
     const [filter, setFilter] = useState("Semua");
 
@@ -129,6 +130,18 @@ export default function Admin() {
     const [contactLoading, setContactLoading] = useState(false);
 
     const isPhotography = form.main_category === "Photography";
+
+    useEffect(() => {
+        const previews = galleryImages.map((file) => ({
+            file,
+            url: URL.createObjectURL(file),
+        }));
+        setPhotoPreviews(previews);
+
+        return () => {
+            previews.forEach((preview) => URL.revokeObjectURL(preview.url));
+        };
+    }, [galleryImages]);
 
     // =========================================================
     // PROJECT HELPERS
@@ -221,9 +234,90 @@ export default function Admin() {
         event.preventDefault();
         setMessage("");
 
-        // Photography wajib memiliki satu foto.
-        if (isPhotography && !image && !form.thumbnail_url) {
-            setMessage("Silakan upload satu foto Photography.");
+        if (isPhotography) {
+            const selectedPhotos = editingId
+                ? (image ? [image] : [])
+                : galleryImages;
+
+            if (editingId && selectedPhotos.length === 0 && !form.thumbnail_url) {
+                setMessage("Pilih foto baru atau batalkan edit.");
+                return;
+            }
+
+            if (!editingId && selectedPhotos.length === 0) {
+                setMessage("Pilih satu atau beberapa foto terlebih dahulu.");
+                return;
+            }
+
+            setSaving(true);
+
+            try {
+                if (editingId) {
+                    const thumbnailUrl = image
+                        ? await uploadImage(image)
+                        : form.thumbnail_url;
+
+                    const payload = {
+                        ...form,
+                        title: form.title || `Foto ${editingId}`,
+                        slug: form.slug || `photo-${editingId}`,
+                        main_category: "Photography",
+                        sub_category: "Other",
+                        description: "Photography",
+                        role: "",
+                        tools: [],
+                        thumbnail_url: thumbnailUrl,
+                        media_urls: [],
+                        video_embed_url: "",
+                        project_year: new Date().getFullYear(),
+                        display_order: Number(form.display_order) || 0,
+                        is_featured: false,
+                    };
+
+                    await saveProject(editingId, payload);
+                    await loadProjects();
+                    resetForm();
+                    setMessage("Foto berhasil diperbarui.");
+                } else {
+                    let savedCount = 0;
+
+                    for (let index = 0; index < selectedPhotos.length; index += 1) {
+                        const file = selectedPhotos[index];
+                        const uploadedUrl = await uploadImage(file);
+                        const fileTitle = file.name.replace(/\.[^/.]+$/, "").trim() || "Foto";
+                        const uniqueSuffix = `${Date.now()}-${index + 1}`;
+
+                        const payload = {
+                            ...form,
+                            title: fileTitle,
+                            slug: `${slugify(fileTitle) || "photo"}-${uniqueSuffix}`,
+                            main_category: "Photography",
+                            sub_category: "Other",
+                            description: "Photography",
+                            role: "",
+                            tools: [],
+                            thumbnail_url: uploadedUrl,
+                            media_urls: [],
+                            video_embed_url: "",
+                            project_year: new Date().getFullYear(),
+                            display_order: (Number(form.display_order) || 0) + index,
+                            is_featured: false,
+                        };
+
+                        await saveProject(null, payload);
+                        savedCount += 1;
+                    }
+
+                    await loadProjects();
+                    resetForm();
+                    setMessage(`${savedCount} foto berhasil ditambahkan sebagai card terpisah.`);
+                }
+            } catch (error) {
+                setMessage(error.message || "Gagal menyimpan foto.");
+            } finally {
+                setSaving(false);
+            }
+
             return;
         }
 
@@ -231,25 +325,19 @@ export default function Admin() {
 
         try {
             let thumbnailUrl = form.thumbnail_url;
+            let mediaUrls = form.media_urls
+                .split("\n")
+                .map((url) => url.trim())
+                .filter(Boolean);
 
-            let mediaUrls = isPhotography
-                ? []
-                : form.media_urls
-                    .split("\n")
-                    .map((url) => url.trim())
-                    .filter(Boolean);
-
-            // Upload satu foto utama.
             if (image) {
                 thumbnailUrl = await uploadImage(image);
             }
 
-            // Upload galeri hanya untuk kategori selain Photography.
-            if (!isPhotography && galleryImages.length > 0) {
+            if (galleryImages.length > 0) {
                 const uploadedGallery = await Promise.all(
                     galleryImages.map((file) => uploadImage(file))
                 );
-
                 mediaUrls = [...mediaUrls, ...uploadedGallery];
             }
 
@@ -257,42 +345,21 @@ export default function Admin() {
                 ...form,
                 slug: form.slug || slugify(form.title),
                 thumbnail_url: thumbnailUrl,
-
-                description: isPhotography
-                    ? `Photography - ${form.sub_category}`
-                    : (form.description?.trim() || ""),
-                role: isPhotography ? "" : form.role,
-
-                tools: isPhotography
-                    ? []
-                    : form.tools
-                        .split(",")
-                        .map((tool) => tool.trim())
-                        .filter(Boolean),
-
-                media_urls: isPhotography ? [] : mediaUrls,
-
-                video_embed_url: isPhotography
-                    ? ""
-                    : form.video_embed_url,
-
-                project_year: isPhotography
-                    ? new Date().getFullYear()
-                    : form.project_year
-                        ? Number(form.project_year)
-                        : null,
-
+                description: form.description?.trim() || "",
+                tools: form.tools
+                    .split(",")
+                    .map((tool) => tool.trim())
+                    .filter(Boolean),
+                media_urls: mediaUrls,
+                project_year: form.project_year ? Number(form.project_year) : null,
                 display_order: Number(form.display_order) || 0,
                 is_featured: Boolean(form.is_featured),
             };
 
             const wasEditing = Boolean(editingId);
-
             await saveProject(editingId, payload);
             await loadProjects();
-
             resetForm();
-
             setMessage(
                 wasEditing
                     ? "Proyek berhasil diperbarui."
@@ -1545,44 +1612,29 @@ export default function Admin() {
                         </select>
                     </label>
 
-                    {/* Subkategori selalu ditampilkan */}
-                    <label>
-                        Subkategori
-                        <select
-                            value={form.sub_category}
-                            onChange={(event) =>
-                                updateField(
-                                    "sub_category",
-                                    event.target.value
-                                )
-                            }
-                            required
-                        >
-                            {(categories[form.main_category] || []).map(
-                                (category) => (
-                                    <option
-                                        key={category}
-                                        value={category}
-                                    >
+                    {/* Foto tidak memerlukan pilihan subkategori */}
+                    {!isPhotography && (
+                        <label>
+                            Subkategori
+                            <select
+                                value={form.sub_category}
+                                onChange={(event) =>
+                                    updateField("sub_category", event.target.value)
+                                }
+                                required
+                            >
+                                {(categories[form.main_category] || []).map((category) => (
+                                    <option key={category} value={category}>
                                         {category}
                                     </option>
-                                )
-                            )}
-
-                            {/* Pertahankan subkategori lama jika
-                                tidak ada dalam daftar kategori */}
-                            {form.sub_category &&
-                                !(
-                                    categories[
-                                    form.main_category
-                                    ] || []
-                                ).includes(form.sub_category) && (
-                                    <option value={form.sub_category}>
-                                        {form.sub_category}
-                                    </option>
-                                )}
-                        </select>
-                    </label>
+                                ))}
+                                {form.sub_category &&
+                                    !(categories[form.main_category] || []).includes(form.sub_category) && (
+                                        <option value={form.sub_category}>{form.sub_category}</option>
+                                    )}
+                            </select>
+                        </label>
+                    )}
 
                     {/* Field tambahan hanya untuk kategori lain */}
                     {!isPhotography && (
@@ -1652,59 +1704,58 @@ export default function Admin() {
 
                 {isPhotography ? (
                     <>
+                        <p>
+                            Pilih banyak foto sekaligus. Setiap foto akan disimpan
+                            sendiri dan muncul sebagai card terpisah di website.
+                        </p>
                         <label>
-                            Upload satu foto
+                            {editingId ? "Ganti foto" : "Pilih foto (bisa banyak)"}
                             <input
                                 type="file"
                                 accept="image/*"
+                                multiple={!editingId}
                                 onChange={(event) => {
-                                    const file =
-                                        event.target.files?.[0] || null;
-
-                                    setImage(file);
-
-                                    if (file) {
-                                        const title = file.name.replace(
-                                            /\.[^/.]+$/,
-                                            ""
-                                        );
-
-                                        setForm((previous) => ({
-                                            ...previous,
-                                            title,
-                                            slug: editingId
-                                                ? previous.slug
-                                                : slugify(title),
-                                        }));
+                                    const files = Array.from(event.target.files || []);
+                                    if (editingId) {
+                                        setImage(files[0] || null);
+                                        setGalleryImages([]);
+                                    } else {
+                                        setGalleryImages(files);
+                                        setImage(null);
                                     }
                                 }}
-                                required={!form.thumbnail_url}
+                                required={editingId ? !form.thumbnail_url : true}
                             />
                         </label>
 
-                        {image && (
-                            <p>
-                                Foto dipilih: {image.name}
-                            </p>
+                        {!editingId && galleryImages.length > 0 && (
+                            <div>
+                                <p>{galleryImages.length} foto dipilih.</p>
+                                <div className="admin-photo-grid">
+                                    {photoPreviews.map((preview, index) => (
+                                        <div className="admin-photo-project" key={`${preview.file.name}-${preview.file.lastModified}-${index}`}>
+                                            <img
+                                                src={preview.url}
+                                                alt="Preview foto yang akan diunggah"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         )}
 
-                        {form.thumbnail_url && (
+                        {editingId && form.thumbnail_url && (
                             <div>
                                 <img
                                     className="admin-preview"
                                     src={form.thumbnail_url}
-                                    alt="Foto Photography saat ini"
+                                    alt="Foto saat ini"
                                 />
-
-                                {!image && (
-                                    <p>
-                                        Foto saat ini. Upload foto
-                                        baru jika ingin menggantinya.
-                                    </p>
-                                )}
+                                {image && <p>Foto baru dipilih: {image.name}</p>}
                             </div>
                         )}
                     </>
+
                 ) : (
                     <>
                         {/* =================================================
