@@ -1665,33 +1665,49 @@ a:focus-visible {
 
 /* Photography showcase */
 
+
 .photo-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 16px;
-    align-items: start;
 }
 
 .photo-card {
     display: block;
     width: 100%;
+    aspect-ratio: 3 / 4;
     padding: 0;
-    border: 0;
-    border-radius: 0;
     overflow: hidden;
-    background: transparent;
+    border: none;
+    border-radius: 12px;
+    background: #f0f0f0;
     cursor: pointer;
-    line-height: 0;
 }
 
 .photo-card img {
     display: block;
     width: 100%;
-    height: auto;
-    aspect-ratio: 4 / 5;
+    height: 100%;
     object-fit: cover;
-    transition: transform 300ms ease;
+    transition: transform 0.3s ease;
 }
+
+.photo-card:hover img {
+    transform: scale(1.04);
+}
+
+@media (max-width: 900px) {
+    .photo-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 480px) {
+    .photo-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 
 .photo-card:hover img {
     transform: scale(1.035);

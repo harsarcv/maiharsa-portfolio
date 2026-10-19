@@ -1,23 +1,14 @@
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { getProjects } from "../api";
 import SiteLayout from "../components/SiteLayout";
-
-const filters = [
-    { label: "All", value: "all" },
-    { label: "Event", value: "event" },
-    { label: "Street", value: "street" },
-    { label: "Cosplay", value: "cosplay" },
-    { label: "Portrait", value: "portrait" },
-];
 
 export default function GalleryPhoto() {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [selected, setSelected] = useState(null);
-    const [activeFilter, setActiveFilter] = useState("all");
 
     useEffect(() => {
         let alive = true;
@@ -33,6 +24,11 @@ export default function GalleryPhoto() {
                                 .trim()
                                 .toLowerCase() === "photography" &&
                             project.thumbnail_url
+                    )
+                    .sort(
+                        (a, b) =>
+                            (Number(a.display_order) || 0) -
+                            (Number(b.display_order) || 0)
                     );
 
                 if (alive) {
@@ -40,9 +36,7 @@ export default function GalleryPhoto() {
                 }
             } catch (err) {
                 if (alive) {
-                    setError(
-                        err.message || "Gagal memuat galeri."
-                    );
+                    setError(err.message || "Gagal memuat galeri.");
                 }
             } finally {
                 if (alive) {
@@ -58,24 +52,10 @@ export default function GalleryPhoto() {
         };
     }, []);
 
-    const visible = useMemo(() => {
-        if (activeFilter === "all") {
-            return items;
-        }
-
-        return items.filter(
-            (project) =>
-                (project.sub_category || "")
-                    .trim()
-                    .toLowerCase() === activeFilter
-        );
-    }, [items, activeFilter]);
-
     useEffect(() => {
         if (!selected) return;
 
         const previousOverflow = document.body.style.overflow;
-
         document.body.style.overflow = "hidden";
 
         function handleKeyDown(event) {
@@ -88,10 +68,7 @@ export default function GalleryPhoto() {
 
         return () => {
             document.body.style.overflow = previousOverflow;
-            window.removeEventListener(
-                "keydown",
-                handleKeyDown
-            );
+            window.removeEventListener("keydown", handleKeyDown);
         };
     }, [selected]);
 
@@ -115,34 +92,9 @@ export default function GalleryPhoto() {
                 </p>
 
                 <section className="photo-gallery-content">
-                    <div
-                        className="filter-row"
-                        aria-label="Filter fotografi"
-                    >
-                        {filters.map((filter) => (
-                            <button
-                                key={filter.value}
-                                type="button"
-                                className={`filter-chip ${
-                                    activeFilter === filter.value
-                                        ? "active"
-                                        : ""
-                                }`}
-                                onClick={() =>
-                                    setActiveFilter(filter.value)
-                                }
-                                aria-pressed={
-                                    activeFilter === filter.value
-                                }
-                            >
-                                {filter.label}
-                            </button>
-                        ))}
-                    </div>
-
                     {!loading && !error && (
                         <p className="gallery3d-count">
-                            {visible.length} PHOTOS
+                            {items.length} PHOTOS
                         </p>
                     )}
 
@@ -151,15 +103,12 @@ export default function GalleryPhoto() {
                             Memuat foto...
                         </p>
                     ) : error ? (
-                        <p
-                            className="state-message"
-                            role="alert"
-                        >
+                        <p className="state-message" role="alert">
                             Foto belum dapat dimuat: {error}
                         </p>
-                    ) : visible.length > 0 ? (
+                    ) : items.length > 0 ? (
                         <div className="photo-grid">
-                            {visible.map((photo) => (
+                            {items.map((photo) => (
                                 <button
                                     type="button"
                                     className="photo-card"
@@ -178,12 +127,8 @@ export default function GalleryPhoto() {
                         </div>
                     ) : (
                         <div className="empty-panel">
-                            <h2>
-                                Belum ada foto di kategori ini.
-                            </h2>
-                            <p>
-                                Coba pilih kategori lain atau All.
-                            </p>
+                            <h2>Belum ada foto.</h2>
+                            <p>Foto yang kamu unggah akan muncul di sini.</p>
                         </div>
                     )}
                 </section>
