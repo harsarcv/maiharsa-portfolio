@@ -58,6 +58,26 @@ const createEmptyProject = () => ({
     display_order: 0,
 });
 
+const createEmptyExperience = () => ({
+    organization: "",
+    role_title: "",
+    exp_type: "Organization",
+    period: "",
+    description: "",
+    highlights: "",
+    display_order: 0,
+});
+
+const createEmptyFurokidz = () => ({
+    title: "",
+    platform: "Instagram",
+    content_url: "",
+    thumbnail_url: "",
+    views_count: "",
+    published_at: "",
+    display_order: 0,
+});
+
 function slugify(value) {
     return value
         .toLowerCase()
@@ -66,50 +86,53 @@ function slugify(value) {
         .replace(/^-|-$/g, "");
 }
 
-
-const createEmptyExperience = () => ({
-    organization: "", role_title: "", exp_type: "Organization", period: "",
-    description: "", highlights: "", display_order: 0,
-});
-
-const createEmptyFurokidz = () => ({
-    title: "", platform: "Instagram", content_url: "", thumbnail_url: "",
-    views_count: "", published_at: "", display_order: 0,
-});
-
-
 export default function Admin() {
     const [loggedIn, setLoggedIn] = useState(false);
     const [loading, setLoading] = useState(true);
+
+    // Projects
     const [projects, setProjects] = useState([]);
-    const [username, setUsername] = useState("admin");
-    const [password, setPassword] = useState("");
     const [form, setForm] = useState(createEmptyProject);
     const [editingId, setEditingId] = useState(null);
     const [image, setImage] = useState(null);
     const [galleryImages, setGalleryImages] = useState([]);
-    const [message, setMessage] = useState("");
     const [saving, setSaving] = useState(false);
     const [filter, setFilter] = useState("Semua");
 
+    // Login
+    const [username, setUsername] = useState("admin");
+    const [password, setPassword] = useState("");
+    const [message, setMessage] = useState("");
+
+    // Experiences
     const [experiences, setExperiences] = useState([]);
     const [experienceForm, setExperienceForm] = useState(
         createEmptyExperience
     );
-    const [editingExperienceId, setEditingExperienceId] =
-        useState(null);
+    const [editingExperienceId, setEditingExperienceId] = useState(null);
     const [experienceSaving, setExperienceSaving] = useState(false);
     const [experienceMessage, setExperienceMessage] = useState("");
+
+    // Furokidz
     const [furokidzItems, setFurokidzItems] = useState([]);
-    const [furokidzForm, setFurokidzForm] = useState(createEmptyFurokidz);
+    const [furokidzForm, setFurokidzForm] = useState(
+        createEmptyFurokidz
+    );
     const [editingFurokidzId, setEditingFurokidzId] = useState(null);
     const [furokidzImage, setFurokidzImage] = useState(null);
     const [furokidzSaving, setFurokidzSaving] = useState(false);
     const [furokidzMessage, setFurokidzMessage] = useState("");
+
+    // Contact inbox
     const [contactMessages, setContactMessages] = useState([]);
     const [contactMessage, setContactMessage] = useState("");
     const [contactLoading, setContactLoading] = useState(false);
 
+    const isPhotography = form.main_category === "Photography";
+
+    // =========================================================
+    // PROJECT HELPERS
+    // =========================================================
 
     const updateField = (field, value) => {
         setForm((previous) => ({
@@ -118,244 +141,11 @@ export default function Admin() {
         }));
     };
 
-    const updateExperienceField = (field, value) => {
-        setExperienceForm((previous) => ({
-            ...previous,
-            [field]: value,
-        }));
-    };
-
-    async function loadExperiences() {
-        const result = await getAdminExperiences();
-        const data = Array.isArray(result)
-            ? result
-            : result.data || result.experiences || [];
-        setExperiences(data);
-    }
-
-    async function loadFurokidz() {
-        const result = await getAdminFurokidz();
-        setFurokidzItems(Array.isArray(result) ? result : result.data || result.items || []);
-    }
-
-    const updateFurokidzField = (field, value) => setFurokidzForm((old) => ({ ...old, [field]: value }));
-    function resetFurokidzForm() {
-        setFurokidzForm(createEmptyFurokidz());
-        setEditingFurokidzId(null);
-        setFurokidzImage(null);
-    }
-    function editFurokidz(item) {
-        setEditingFurokidzId(item.id);
-        setFurokidzForm({
-            title: item.title || "", platform: item.platform || "Instagram",
-            content_url: item.content_url || "", thumbnail_url: item.thumbnail_url || "",
-            views_count: item.views_count || "", published_at: item.published_at ? String(item.published_at).slice(0, 10) : "",
-            display_order: item.display_order ?? 0,
-        });
-        setFurokidzImage(null);
-        setFurokidzMessage("");
-        window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-    async function handleSaveFurokidz(event) {
-        event.preventDefault();
-        setFurokidzSaving(true);
-        setFurokidzMessage("");
-        try {
-            let thumbnailUrl = furokidzForm.thumbnail_url;
-            if (furokidzImage) thumbnailUrl = await uploadImage(furokidzImage);
-            const wasEditing = Boolean(editingFurokidzId);
-            await saveFurokidz(editingFurokidzId, {
-                ...furokidzForm,
-                thumbnail_url: thumbnailUrl,
-                published_at: furokidzForm.published_at || null,
-                display_order: Number(furokidzForm.display_order) || 0,
-            });
-            await loadFurokidz();
-            resetFurokidzForm();
-            setFurokidzMessage(wasEditing ? "Konten Furokidz berhasil diperbarui." : "Konten Furokidz berhasil ditambahkan.");
-        } catch (error) {
-            setFurokidzMessage(error.message);
-        } finally {
-            setFurokidzSaving(false);
-        }
-    }
-    async function handleDeleteFurokidz(item) {
-        if (!window.confirm(`Hapus konten "${item.title}"?`)) return;
-        try {
-            await deleteFurokidz(item.id);
-            await loadFurokidz();
-            if (editingFurokidzId === item.id) resetFurokidzForm();
-            setFurokidzMessage("Konten Furokidz berhasil dihapus.");
-        } catch (error) {
-            setFurokidzMessage(error.message);
-        }
-    }
-
-    function resetExperienceForm() {
-        setExperienceForm(createEmptyExperience());
-        setEditingExperienceId(null);
-    }
-
-    function editExperience(item) {
-        setEditingExperienceId(item.id);
-        setExperienceForm({
-            organization: item.organization || "",
-            role_title: item.role_title || "",
-            exp_type: item.exp_type || "Organization",
-            period: item.period || "",
-            description: item.description || "",
-            highlights: Array.isArray(item.highlights)
-                ? item.highlights.join("\n")
-                : "",
-            display_order: item.display_order ?? 0,
-        });
-        setExperienceMessage("");
-        window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-
-    async function handleSaveExperience(event) {
-        event.preventDefault();
-        setExperienceSaving(true);
-        setExperienceMessage("");
-
-        try {
-            const wasEditing = Boolean(editingExperienceId);
-            const payload = {
-                ...experienceForm,
-                highlights: experienceForm.highlights
-                    .split("\n")
-                    .map((item) => item.trim())
-                    .filter(Boolean),
-                display_order: Number(experienceForm.display_order) || 0,
-            };
-
-            await saveExperience(editingExperienceId, payload);
-            await loadExperiences();
-            resetExperienceForm();
-            setExperienceMessage(
-                wasEditing
-                    ? "Pengalaman berhasil diperbarui."
-                    : "Pengalaman berhasil ditambahkan."
-            );
-        } catch (error) {
-            setExperienceMessage(error.message);
-        } finally {
-            setExperienceSaving(false);
-        }
-    }
-
-    async function handleDeleteExperience(item) {
-        const confirmed = window.confirm(
-            `Hapus pengalaman "${item.role_title} — ${item.organization}"?`
-        );
-        if (!confirmed) return;
-
-        try {
-            await deleteExperience(item.id);
-            await loadExperiences();
-            if (editingExperienceId === item.id) resetExperienceForm();
-            setExperienceMessage("Pengalaman berhasil dihapus.");
-        } catch (error) {
-            setExperienceMessage(error.message);
-        }
-    }
-
-    async function loadProjects() {
-        const result = await getAdminProjects();
-        const data = Array.isArray(result)
-            ? result
-            : result.data || result.projects || [];
-
-        setProjects(data);
-    }
-
-
-    async function loadContactMessages() {
-        setContactLoading(true);
-
-        try {
-            const data = await getContactMessages();
-            setContactMessages(data);
-            setContactMessage("");
-        } catch (error) {
-            setContactMessage(error.message || "Gagal memuat pesan.");
-        } finally {
-            setContactLoading(false);
-        }
-    }
-
-    async function handleToggleRead(item) {
-        try {
-            if (item.is_read) {
-                await markContactUnread(item.id);
-            } else {
-                await markContactRead(item.id);
-            }
-
-            await loadContactMessages();
-        } catch (error) {
-            setContactMessage(error.message || "Gagal memperbarui status pesan.");
-        }
-    }
-
-    async function handleDeleteContact(item) {
-        const confirmed = window.confirm(
-            `Hapus pesan dari "${item.sender_name}"?`
-        );
-
-        if (!confirmed) return;
-
-        try {
-            await deleteContactMessage(item.id);
-            await loadContactMessages();
-            setContactMessage("Pesan berhasil dihapus.");
-        } catch (error) {
-            setContactMessage(error.message || "Gagal menghapus pesan.");
-        }
-    }
-
-
-    useEffect(() => {
-        checkAdmin()
-            .then(async () => {
-                setLoggedIn(true);
-                await Promise.all([
-                    loadProjects(),
-                    loadExperiences(),
-                    loadFurokidz(),
-                    loadContactMessages()
-                ]);
-            })
-            .catch(() => setLoggedIn(false))
-            .finally(() => setLoading(false));
-    }, []);
-
-    async function handleLogin(event) {
-        event.preventDefault();
-        setMessage("");
-
-        try {
-            await adminLogin({ username, password });
-            setLoggedIn(true);
-            setPassword("");
-            await Promise.all([loadProjects(), loadExperiences(), loadFurokidz()]);
-        } catch (error) {
-            setMessage(error.message);
-        }
-    }
-
-    async function handleLogout() {
-        try {
-            await adminLogout();
-        } finally {
-            setLoggedIn(false);
-            setProjects([]);
-            setExperiences([]);
-            setFurokidzItems([]);
-            resetForm();
-            resetExperienceForm();
-            resetFurokidzForm();
-        }
+    function resetForm() {
+        setForm(createEmptyProject());
+        setEditingId(null);
+        setImage(null);
+        setGalleryImages([]);
     }
 
     function handleCategoryChange(category) {
@@ -363,11 +153,20 @@ export default function Admin() {
             ...previous,
             main_category: category,
             sub_category: categories[category]?.[0] || "",
+            media_urls:
+                category === "Photography"
+                    ? ""
+                    : previous.media_urls,
             video_embed_url:
                 category === "Filmmaking"
                     ? previous.video_embed_url
-                    : previous.video_embed_url,
+                    : "",
         }));
+
+        // Photography hanya menggunakan satu thumbnail.
+        if (category === "Photography") {
+            setGalleryImages([]);
+        }
     }
 
     function editProject(project) {
@@ -397,14 +196,10 @@ export default function Admin() {
         setGalleryImages([]);
         setMessage("");
 
-        window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-
-    function resetForm() {
-        setForm(createEmptyProject());
-        setEditingId(null);
-        setImage(null);
-        setGalleryImages([]);
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth",
+        });
     }
 
     async function uploadImage(file) {
@@ -412,24 +207,45 @@ export default function Admin() {
         return result.imageUrl;
     }
 
+    async function loadProjects() {
+        const result = await getAdminProjects();
+
+        const data = Array.isArray(result)
+            ? result
+            : result.data || result.projects || [];
+
+        setProjects(data);
+    }
+
     async function handleSave(event) {
         event.preventDefault();
-        setSaving(true);
         setMessage("");
+
+        // Photography wajib memiliki satu foto.
+        if (isPhotography && !image && !form.thumbnail_url) {
+            setMessage("Silakan upload satu foto Photography.");
+            return;
+        }
+
+        setSaving(true);
 
         try {
             let thumbnailUrl = form.thumbnail_url;
 
-            let mediaUrls = form.media_urls
-                .split("\n")
-                .map((url) => url.trim())
-                .filter(Boolean);
+            let mediaUrls = isPhotography
+                ? []
+                : form.media_urls
+                    .split("\n")
+                    .map((url) => url.trim())
+                    .filter(Boolean);
 
+            // Upload satu foto utama.
             if (image) {
                 thumbnailUrl = await uploadImage(image);
             }
 
-            if (galleryImages.length > 0) {
+            // Upload galeri hanya untuk kategori selain Photography.
+            if (!isPhotography && galleryImages.length > 0) {
                 const uploadedGallery = await Promise.all(
                     galleryImages.map((file) => uploadImage(file))
                 );
@@ -441,14 +257,29 @@ export default function Admin() {
                 ...form,
                 slug: form.slug || slugify(form.title),
                 thumbnail_url: thumbnailUrl,
-                tools: form.tools
-                    .split(",")
-                    .map((tool) => tool.trim())
-                    .filter(Boolean),
-                media_urls: mediaUrls,
-                project_year: form.project_year
-                    ? Number(form.project_year)
-                    : null,
+
+                description: isPhotography ? "" : form.description,
+                role: isPhotography ? "" : form.role,
+
+                tools: isPhotography
+                    ? []
+                    : form.tools
+                        .split(",")
+                        .map((tool) => tool.trim())
+                        .filter(Boolean),
+
+                media_urls: isPhotography ? [] : mediaUrls,
+
+                video_embed_url: isPhotography
+                    ? ""
+                    : form.video_embed_url,
+
+                project_year: isPhotography
+                    ? new Date().getFullYear()
+                    : form.project_year
+                        ? Number(form.project_year)
+                        : null,
+
                 display_order: Number(form.display_order) || 0,
                 is_featured: Boolean(form.is_featured),
             };
@@ -466,7 +297,7 @@ export default function Admin() {
                     : "Proyek berhasil ditambahkan."
             );
         } catch (error) {
-            setMessage(error.message);
+            setMessage(error.message || "Gagal menyimpan proyek.");
         } finally {
             setSaving(false);
         }
@@ -489,7 +320,354 @@ export default function Admin() {
 
             setMessage("Proyek berhasil dihapus.");
         } catch (error) {
-            setMessage(error.message);
+            setMessage(error.message || "Gagal menghapus proyek.");
+        }
+    }
+
+    // =========================================================
+    // EXPERIENCE HELPERS
+    // =========================================================
+
+    const updateExperienceField = (field, value) => {
+        setExperienceForm((previous) => ({
+            ...previous,
+            [field]: value,
+        }));
+    };
+
+    async function loadExperiences() {
+        const result = await getAdminExperiences();
+
+        const data = Array.isArray(result)
+            ? result
+            : result.data || result.experiences || [];
+
+        setExperiences(data);
+    }
+
+    function resetExperienceForm() {
+        setExperienceForm(createEmptyExperience());
+        setEditingExperienceId(null);
+    }
+
+    function editExperience(item) {
+        setEditingExperienceId(item.id);
+
+        setExperienceForm({
+            organization: item.organization || "",
+            role_title: item.role_title || "",
+            exp_type: item.exp_type || "Organization",
+            period: item.period || "",
+            description: item.description || "",
+            highlights: Array.isArray(item.highlights)
+                ? item.highlights.join("\n")
+                : "",
+            display_order: item.display_order ?? 0,
+        });
+
+        setExperienceMessage("");
+
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth",
+        });
+    }
+
+    async function handleSaveExperience(event) {
+        event.preventDefault();
+
+        setExperienceSaving(true);
+        setExperienceMessage("");
+
+        try {
+            const wasEditing = Boolean(editingExperienceId);
+
+            const payload = {
+                ...experienceForm,
+                highlights: experienceForm.highlights
+                    .split("\n")
+                    .map((item) => item.trim())
+                    .filter(Boolean),
+                display_order:
+                    Number(experienceForm.display_order) || 0,
+            };
+
+            await saveExperience(editingExperienceId, payload);
+            await loadExperiences();
+
+            resetExperienceForm();
+
+            setExperienceMessage(
+                wasEditing
+                    ? "Pengalaman berhasil diperbarui."
+                    : "Pengalaman berhasil ditambahkan."
+            );
+        } catch (error) {
+            setExperienceMessage(
+                error.message || "Gagal menyimpan pengalaman."
+            );
+        } finally {
+            setExperienceSaving(false);
+        }
+    }
+
+    async function handleDeleteExperience(item) {
+        const confirmed = window.confirm(
+            `Hapus pengalaman "${item.role_title} — ${item.organization}"?`
+        );
+
+        if (!confirmed) return;
+
+        try {
+            await deleteExperience(item.id);
+            await loadExperiences();
+
+            if (editingExperienceId === item.id) {
+                resetExperienceForm();
+            }
+
+            setExperienceMessage("Pengalaman berhasil dihapus.");
+        } catch (error) {
+            setExperienceMessage(
+                error.message || "Gagal menghapus pengalaman."
+            );
+        }
+    }
+
+    // =========================================================
+    // FUROKIDZ HELPERS
+    // =========================================================
+
+    const updateFurokidzField = (field, value) => {
+        setFurokidzForm((previous) => ({
+            ...previous,
+            [field]: value,
+        }));
+    };
+
+    async function loadFurokidz() {
+        const result = await getAdminFurokidz();
+
+        setFurokidzItems(
+            Array.isArray(result)
+                ? result
+                : result.data || result.items || []
+        );
+    }
+
+    function resetFurokidzForm() {
+        setFurokidzForm(createEmptyFurokidz());
+        setEditingFurokidzId(null);
+        setFurokidzImage(null);
+    }
+
+    function editFurokidz(item) {
+        setEditingFurokidzId(item.id);
+
+        setFurokidzForm({
+            title: item.title || "",
+            platform: item.platform || "Instagram",
+            content_url: item.content_url || "",
+            thumbnail_url: item.thumbnail_url || "",
+            views_count: item.views_count || "",
+            published_at: item.published_at
+                ? String(item.published_at).slice(0, 10)
+                : "",
+            display_order: item.display_order ?? 0,
+        });
+
+        setFurokidzImage(null);
+        setFurokidzMessage("");
+
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth",
+        });
+    }
+
+    async function handleSaveFurokidz(event) {
+        event.preventDefault();
+
+        setFurokidzSaving(true);
+        setFurokidzMessage("");
+
+        try {
+            let thumbnailUrl = furokidzForm.thumbnail_url;
+
+            if (furokidzImage) {
+                thumbnailUrl = await uploadImage(furokidzImage);
+            }
+
+            const wasEditing = Boolean(editingFurokidzId);
+
+            await saveFurokidz(editingFurokidzId, {
+                ...furokidzForm,
+                thumbnail_url: thumbnailUrl,
+                published_at: furokidzForm.published_at || null,
+                display_order:
+                    Number(furokidzForm.display_order) || 0,
+            });
+
+            await loadFurokidz();
+            resetFurokidzForm();
+
+            setFurokidzMessage(
+                wasEditing
+                    ? "Konten Furokidz berhasil diperbarui."
+                    : "Konten Furokidz berhasil ditambahkan."
+            );
+        } catch (error) {
+            setFurokidzMessage(
+                error.message || "Gagal menyimpan konten."
+            );
+        } finally {
+            setFurokidzSaving(false);
+        }
+    }
+
+    async function handleDeleteFurokidz(item) {
+        if (!window.confirm(`Hapus konten "${item.title}"?`)) {
+            return;
+        }
+
+        try {
+            await deleteFurokidz(item.id);
+            await loadFurokidz();
+
+            if (editingFurokidzId === item.id) {
+                resetFurokidzForm();
+            }
+
+            setFurokidzMessage("Konten Furokidz berhasil dihapus.");
+        } catch (error) {
+            setFurokidzMessage(
+                error.message || "Gagal menghapus konten."
+            );
+        }
+    }
+
+    // =========================================================
+    // CONTACT INBOX HELPERS
+    // =========================================================
+
+    async function loadContactMessages() {
+        setContactLoading(true);
+
+        try {
+            const data = await getContactMessages();
+
+            setContactMessages(
+                Array.isArray(data)
+                    ? data
+                    : data.data || data.messages || []
+            );
+
+            setContactMessage("");
+        } catch (error) {
+            setContactMessage(
+                error.message || "Gagal memuat pesan."
+            );
+        } finally {
+            setContactLoading(false);
+        }
+    }
+
+    async function handleToggleRead(item) {
+        try {
+            if (item.is_read) {
+                await markContactUnread(item.id);
+            } else {
+                await markContactRead(item.id);
+            }
+
+            await loadContactMessages();
+        } catch (error) {
+            setContactMessage(
+                error.message || "Gagal memperbarui status pesan."
+            );
+        }
+    }
+
+    async function handleDeleteContact(item) {
+        const confirmed = window.confirm(
+            `Hapus pesan dari "${item.sender_name}"?`
+        );
+
+        if (!confirmed) return;
+
+        try {
+            await deleteContactMessage(item.id);
+            await loadContactMessages();
+
+            setContactMessage("Pesan berhasil dihapus.");
+        } catch (error) {
+            setContactMessage(
+                error.message || "Gagal menghapus pesan."
+            );
+        }
+    }
+
+    // =========================================================
+    // AUTHENTICATION
+    // =========================================================
+
+    useEffect(() => {
+        checkAdmin()
+            .then(async () => {
+                setLoggedIn(true);
+
+                await Promise.all([
+                    loadProjects(),
+                    loadExperiences(),
+                    loadFurokidz(),
+                    loadContactMessages(),
+                ]);
+            })
+            .catch(() => {
+                setLoggedIn(false);
+            })
+            .finally(() => {
+                setLoading(false);
+            });
+    }, []);
+
+    async function handleLogin(event) {
+        event.preventDefault();
+        setMessage("");
+
+        try {
+            await adminLogin({
+                username,
+                password,
+            });
+
+            setLoggedIn(true);
+            setPassword("");
+
+            await Promise.all([
+                loadProjects(),
+                loadExperiences(),
+                loadFurokidz(),
+                loadContactMessages(),
+            ]);
+        } catch (error) {
+            setMessage(error.message || "Login gagal.");
+        }
+    }
+
+    async function handleLogout() {
+        try {
+            await adminLogout();
+        } finally {
+            setLoggedIn(false);
+            setProjects([]);
+            setExperiences([]);
+            setFurokidzItems([]);
+            setContactMessages([]);
+
+            resetForm();
+            resetExperienceForm();
+            resetFurokidzForm();
         }
     }
 
@@ -500,6 +678,10 @@ export default function Admin() {
                 (project) => project.main_category === filter
             );
 
+    // =========================================================
+    // LOADING
+    // =========================================================
+
     if (loading) {
         return (
             <main className="admin-page">
@@ -507,6 +689,10 @@ export default function Admin() {
             </main>
         );
     }
+
+    // =========================================================
+    // LOGIN PAGE
+    // =========================================================
 
     if (!loggedIn) {
         return (
@@ -543,14 +729,25 @@ export default function Admin() {
                         />
                     </label>
 
-                    {message && <p role="alert">{message}</p>}
+                    {message && (
+                        <p role="alert">{message}</p>
+                    )}
 
-                    <button type="submit">Login</button>
-                    <a href="/">Kembali ke portofolio</a>
+                    <button type="submit">
+                        Login
+                    </button>
+
+                    <a href="/">
+                        Kembali ke portofolio
+                    </a>
                 </form>
             </main>
         );
     }
+
+    // =========================================================
+    // ADMIN DASHBOARD
+    // =========================================================
 
     return (
         <main className="admin-page">
@@ -561,32 +758,57 @@ export default function Admin() {
                 </div>
 
                 <div className="admin-actions">
-                    <a href="/" target="_blank" rel="noreferrer">
+                    <a
+                        href="/"
+                        target="_blank"
+                        rel="noreferrer"
+                    >
                         Lihat portofolio
                     </a>
 
-                    <button type="button" onClick={handleLogout}>
+                    <button
+                        type="button"
+                        onClick={handleLogout}
+                    >
                         Logout
                     </button>
                 </div>
             </header>
 
             {message && (
-                <p className="admin-message" role="status">
+                <p
+                    className="admin-message"
+                    role="status"
+                >
                     {message}
                 </p>
             )}
 
+            {/* =================================================
+                CONTACT INBOX
+            ================================================= */}
 
             <section className="admin-panel">
                 <h2>
-                    Inbox Contact ({contactMessages.filter((item) => !item.is_read).length} belum dibaca)
+                    Inbox Contact (
+                    {
+                        contactMessages.filter(
+                            (item) => !item.is_read
+                        ).length
+                    }{" "}
+                    belum dibaca)
                 </h2>
 
-                <p>Pesan yang dikirim melalui formulir Contact portofolio.</p>
+                <p>
+                    Pesan yang dikirim melalui formulir Contact
+                    portofolio.
+                </p>
 
                 {contactMessage && (
-                    <p className="admin-message" role="status">
+                    <p
+                        className="admin-message"
+                        role="status"
+                    >
                         {contactMessage}
                     </p>
                 )}
@@ -596,17 +818,25 @@ export default function Admin() {
                     onClick={loadContactMessages}
                     disabled={contactLoading}
                 >
-                    {contactLoading ? "Memuat..." : "Refresh pesan"}
+                    {contactLoading
+                        ? "Memuat..."
+                        : "Refresh pesan"}
                 </button>
 
-                {contactLoading && <p>Memuat pesan...</p>}
-
-                {!contactLoading && contactMessages.length === 0 && (
-                    <p>Belum ada pesan masuk.</p>
+                {contactLoading && (
+                    <p>Memuat pesan...</p>
                 )}
 
+                {!contactLoading &&
+                    contactMessages.length === 0 && (
+                        <p>Belum ada pesan masuk.</p>
+                    )}
+
                 {contactMessages.map((item) => (
-                    <article className="admin-project" key={item.id}>
+                    <article
+                        className="admin-project"
+                        key={item.id}
+                    >
                         <div className="admin-project-info">
                             <strong>
                                 {item.sender_name}
@@ -615,18 +845,26 @@ export default function Admin() {
 
                             <span>{item.inquiry_type}</span>
 
-                            <a href={`mailto:${item.sender_email}`}>
+                            <a
+                                href={`mailto:${item.sender_email}`}
+                            >
                                 {item.sender_email}
                             </a>
 
                             <small>
-                                {new Date(item.submitted_at).toLocaleString("id-ID", {
+                                {new Date(
+                                    item.submitted_at
+                                ).toLocaleString("id-ID", {
                                     dateStyle: "medium",
                                     timeStyle: "short",
                                 })}
                             </small>
 
-                            <p style={{ whiteSpace: "pre-wrap" }}>
+                            <p
+                                style={{
+                                    whiteSpace: "pre-wrap",
+                                }}
+                            >
                                 {item.message}
                             </p>
                         </div>
@@ -634,9 +872,13 @@ export default function Admin() {
                         <div className="admin-actions">
                             <button
                                 type="button"
-                                onClick={() => handleToggleRead(item)}
+                                onClick={() =>
+                                    handleToggleRead(item)
+                                }
                             >
-                                {item.is_read ? "Tandai belum dibaca" : "Tandai dibaca"}
+                                {item.is_read
+                                    ? "Tandai belum dibaca"
+                                    : "Tandai dibaca"}
                             </button>
 
                             <a
@@ -650,7 +892,9 @@ export default function Admin() {
 
                             <button
                                 type="button"
-                                onClick={() => handleDeleteContact(item)}
+                                onClick={() =>
+                                    handleDeleteContact(item)
+                                }
                             >
                                 Hapus
                             </button>
@@ -659,116 +903,493 @@ export default function Admin() {
                 ))}
             </section>
 
+            {/* =================================================
+                FUROKIDZ CONTENT
+            ================================================= */}
 
             <section className="admin-panel">
                 <h2>Furokidz Content</h2>
-                <p>Kelola konten yang tampil pada halaman Furokidz.</p>
-                {furokidzMessage && <p className="admin-message" role="status">{furokidzMessage}</p>}
-                <form className="admin-form" onSubmit={handleSaveFurokidz}>
-                    <h3>{editingFurokidzId ? "Edit Konten Furokidz" : "Tambah Konten Furokidz"}</h3>
-                    <div className="admin-fields">
-                        <label>Judul konten<input value={furokidzForm.title} onChange={(e) => updateFurokidzField("title", e.target.value)} required /></label>
-                        <label>Platform<select value={furokidzForm.platform} onChange={(e) => updateFurokidzField("platform", e.target.value)} required>
-                            <option>Instagram</option><option>YouTube</option><option>TikTok</option><option>Vimeo</option><option>Other</option>
-                        </select></label>
-                        <label>URL konten<input type="url" value={furokidzForm.content_url} onChange={(e) => updateFurokidzField("content_url", e.target.value)} placeholder="https://..." required /></label>
-                        <label>Jumlah views<input value={furokidzForm.views_count} onChange={(e) => updateFurokidzField("views_count", e.target.value)} placeholder="Contoh: 12.5K" /></label>
-                        <label>Tanggal publikasi<input type="date" value={furokidzForm.published_at} onChange={(e) => updateFurokidzField("published_at", e.target.value)} /></label>
-                        <label>Urutan tampilan<input type="number" value={furokidzForm.display_order} onChange={(e) => updateFurokidzField("display_order", e.target.value)} /></label>
-                    </div>
-                    <label>Upload thumbnail<input type="file" accept="image/*" onChange={(e) => setFurokidzImage(e.target.files?.[0] || null)} /></label>
-                    {furokidzForm.thumbnail_url && <img className="admin-preview" src={furokidzForm.thumbnail_url} alt="Thumbnail Furokidz" />}
-                    <label>URL thumbnail (opsional jika upload gambar)<input type="url" value={furokidzForm.thumbnail_url} onChange={(e) => updateFurokidzField("thumbnail_url", e.target.value)} placeholder="https://..." /></label>
-                    <div className="admin-actions">
-                        <button type="submit" disabled={furokidzSaving}>{furokidzSaving ? "Menyimpan..." : editingFurokidzId ? "Simpan Perubahan" : "Tambah Konten"}</button>
-                        {editingFurokidzId && <button type="button" onClick={resetFurokidzForm}>Batal Edit</button>}
-                    </div>
-                </form>
-                <h3>Daftar Konten ({furokidzItems.length})</h3>
-                {furokidzItems.length === 0 && <p>Belum ada konten Furokidz.</p>}
-                {furokidzItems.map((item) => <article className="admin-project" key={item.id}>
-                    {item.thumbnail_url && <img src={item.thumbnail_url} alt="" />}
-                    <div className="admin-project-info"><strong>{item.title}</strong><span>{item.platform}{item.views_count ? ` · ${item.views_count} views` : ""}</span><small>{item.content_url}</small></div>
-                    <div className="admin-actions"><button type="button" onClick={() => editFurokidz(item)}>Edit</button><button type="button" onClick={() => handleDeleteFurokidz(item)}>Hapus</button></div>
-                </article>)}
-            </section>
 
-            <section className="admin-panel">
-                <h2>Experience & Organization</h2>
-                <p>Kelola pengalaman dan organisasi yang tampil di halaman About.</p>
-                {experienceMessage && (
-                    <p className="admin-message" role="status">
-                        {experienceMessage}
+                <p>
+                    Kelola konten yang tampil pada halaman
+                    Furokidz.
+                </p>
+
+                {furokidzMessage && (
+                    <p
+                        className="admin-message"
+                        role="status"
+                    >
+                        {furokidzMessage}
                     </p>
                 )}
 
-                <form className="admin-form" onSubmit={handleSaveExperience}>
-                    <h3>{editingExperienceId ? "Edit Pengalaman" : "Tambah Pengalaman"}</h3>
+                <form
+                    className="admin-form"
+                    onSubmit={handleSaveFurokidz}
+                >
+                    <h3>
+                        {editingFurokidzId
+                            ? "Edit Konten Furokidz"
+                            : "Tambah Konten Furokidz"}
+                    </h3>
+
                     <div className="admin-fields">
                         <label>
-                            Organisasi / Perusahaan
-                            <input value={experienceForm.organization} onChange={(event) => updateExperienceField("organization", event.target.value)} required />
+                            Judul konten
+                            <input
+                                value={furokidzForm.title}
+                                onChange={(event) =>
+                                    updateFurokidzField(
+                                        "title",
+                                        event.target.value
+                                    )
+                                }
+                                required
+                            />
                         </label>
+
                         <label>
-                            Jabatan / Peran
-                            <input value={experienceForm.role_title} onChange={(event) => updateExperienceField("role_title", event.target.value)} required />
-                        </label>
-                        <label>
-                            Jenis pengalaman
-                            <select value={experienceForm.exp_type} onChange={(event) => updateExperienceField("exp_type", event.target.value)} required>
-                                <option value="Organization">Organization</option>
-                                <option value="Work">Work</option>
-                                <option value="Volunteer">Volunteer</option>
-                                <option value="Freelance">Freelance</option>
-                                <option value="Internship">Internship</option>
-                                <option value="Committee">Committee</option>
-                                <option value="Other">Other</option>
+                            Platform
+                            <select
+                                value={furokidzForm.platform}
+                                onChange={(event) =>
+                                    updateFurokidzField(
+                                        "platform",
+                                        event.target.value
+                                    )
+                                }
+                                required
+                            >
+                                <option>Instagram</option>
+                                <option>YouTube</option>
+                                <option>TikTok</option>
+                                <option>Vimeo</option>
+                                <option>Other</option>
                             </select>
                         </label>
+
                         <label>
-                            Periode
-                            <input value={experienceForm.period} onChange={(event) => updateExperienceField("period", event.target.value)} placeholder="Contoh: 2024 – 2025" required />
+                            URL konten
+                            <input
+                                type="url"
+                                value={furokidzForm.content_url}
+                                onChange={(event) =>
+                                    updateFurokidzField(
+                                        "content_url",
+                                        event.target.value
+                                    )
+                                }
+                                placeholder="https://..."
+                                required
+                            />
                         </label>
+
+                        <label>
+                            Jumlah views
+                            <input
+                                value={furokidzForm.views_count}
+                                onChange={(event) =>
+                                    updateFurokidzField(
+                                        "views_count",
+                                        event.target.value
+                                    )
+                                }
+                                placeholder="Contoh: 12.5K"
+                            />
+                        </label>
+
+                        <label>
+                            Tanggal publikasi
+                            <input
+                                type="date"
+                                value={furokidzForm.published_at}
+                                onChange={(event) =>
+                                    updateFurokidzField(
+                                        "published_at",
+                                        event.target.value
+                                    )
+                                }
+                            />
+                        </label>
+
                         <label>
                             Urutan tampilan
-                            <input type="number" value={experienceForm.display_order} onChange={(event) => updateExperienceField("display_order", event.target.value)} />
+                            <input
+                                type="number"
+                                value={furokidzForm.display_order}
+                                onChange={(event) =>
+                                    updateFurokidzField(
+                                        "display_order",
+                                        event.target.value
+                                    )
+                                }
+                            />
                         </label>
                     </div>
+
                     <label>
-                        Deskripsi
-                        <textarea rows="4" value={experienceForm.description} onChange={(event) => updateExperienceField("description", event.target.value)} required />
+                        Upload thumbnail
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(event) =>
+                                setFurokidzImage(
+                                    event.target.files?.[0] || null
+                                )
+                            }
+                        />
                     </label>
+
+                    {furokidzForm.thumbnail_url && (
+                        <img
+                            className="admin-preview"
+                            src={furokidzForm.thumbnail_url}
+                            alt="Thumbnail Furokidz"
+                        />
+                    )}
+
                     <label>
-                        Pencapaian / highlight (satu poin per baris)
-                        <textarea rows="4" value={experienceForm.highlights} onChange={(event) => updateExperienceField("highlights", event.target.value)} placeholder={"Mengelola kegiatan organisasi\nMelakukan kurasi karya"} />
+                        URL thumbnail
+                        (opsional jika upload gambar)
+                        <input
+                            type="url"
+                            value={furokidzForm.thumbnail_url}
+                            onChange={(event) =>
+                                updateFurokidzField(
+                                    "thumbnail_url",
+                                    event.target.value
+                                )
+                            }
+                            placeholder="https://..."
+                        />
                     </label>
+
                     <div className="admin-actions">
-                        <button type="submit" disabled={experienceSaving}>
-                            {experienceSaving ? "Menyimpan..." : editingExperienceId ? "Simpan Perubahan" : "Tambah Pengalaman"}
+                        <button
+                            type="submit"
+                            disabled={furokidzSaving}
+                        >
+                            {furokidzSaving
+                                ? "Menyimpan..."
+                                : editingFurokidzId
+                                    ? "Simpan Perubahan"
+                                    : "Tambah Konten"}
                         </button>
-                        {editingExperienceId && <button type="button" onClick={resetExperienceForm}>Batal Edit</button>}
+
+                        {editingFurokidzId && (
+                            <button
+                                type="button"
+                                onClick={resetFurokidzForm}
+                            >
+                                Batal Edit
+                            </button>
+                        )}
                     </div>
                 </form>
 
-                <h3>Daftar Pengalaman ({experiences.length})</h3>
-                {experiences.length === 0 && <p>Belum ada pengalaman ditambahkan.</p>}
-                {experiences.map((item) => (
-                    <article className="admin-project" key={item.id}>
+                <h3>
+                    Daftar Konten ({furokidzItems.length})
+                </h3>
+
+                {furokidzItems.length === 0 && (
+                    <p>Belum ada konten Furokidz.</p>
+                )}
+
+                {furokidzItems.map((item) => (
+                    <article
+                        className="admin-project"
+                        key={item.id}
+                    >
+                        {item.thumbnail_url && (
+                            <img
+                                src={item.thumbnail_url}
+                                alt=""
+                            />
+                        )}
+
                         <div className="admin-project-info">
-                            <strong>{item.role_title} — {item.organization}</strong>
-                            <span>{item.period} · {item.exp_type}</span>
-                            <p>{item.description}</p>
-                            {Array.isArray(item.highlights) && item.highlights.length > 0 && (
-                                <ul>{item.highlights.map((highlight, index) => <li key={`${item.id}-highlight-${index}`}>{highlight}</li>)}</ul>
-                            )}
+                            <strong>{item.title}</strong>
+
+                            <span>
+                                {item.platform}
+                                {item.views_count
+                                    ? ` · ${item.views_count} views`
+                                    : ""}
+                            </span>
+
+                            <small>{item.content_url}</small>
                         </div>
+
                         <div className="admin-actions">
-                            <button type="button" onClick={() => editExperience(item)}>Edit</button>
-                            <button type="button" onClick={() => handleDeleteExperience(item)}>Hapus</button>
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    editFurokidz(item)
+                                }
+                            >
+                                Edit
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    handleDeleteFurokidz(item)
+                                }
+                            >
+                                Hapus
+                            </button>
                         </div>
                     </article>
                 ))}
             </section>
+
+            {/* =================================================
+                EXPERIENCE & ORGANIZATION
+            ================================================= */}
+
+            <section className="admin-panel">
+                <h2>Experience & Organization</h2>
+
+                <p>
+                    Kelola pengalaman dan organisasi yang tampil
+                    di halaman About.
+                </p>
+
+                {experienceMessage && (
+                    <p
+                        className="admin-message"
+                        role="status"
+                    >
+                        {experienceMessage}
+                    </p>
+                )}
+
+                <form
+                    className="admin-form"
+                    onSubmit={handleSaveExperience}
+                >
+                    <h3>
+                        {editingExperienceId
+                            ? "Edit Pengalaman"
+                            : "Tambah Pengalaman"}
+                    </h3>
+
+                    <div className="admin-fields">
+                        <label>
+                            Organisasi / Perusahaan
+                            <input
+                                value={experienceForm.organization}
+                                onChange={(event) =>
+                                    updateExperienceField(
+                                        "organization",
+                                        event.target.value
+                                    )
+                                }
+                                required
+                            />
+                        </label>
+
+                        <label>
+                            Jabatan / Peran
+                            <input
+                                value={experienceForm.role_title}
+                                onChange={(event) =>
+                                    updateExperienceField(
+                                        "role_title",
+                                        event.target.value
+                                    )
+                                }
+                                required
+                            />
+                        </label>
+
+                        <label>
+                            Jenis pengalaman
+                            <select
+                                value={experienceForm.exp_type}
+                                onChange={(event) =>
+                                    updateExperienceField(
+                                        "exp_type",
+                                        event.target.value
+                                    )
+                                }
+                                required
+                            >
+                                <option value="Organization">
+                                    Organization
+                                </option>
+                                <option value="Work">Work</option>
+                                <option value="Volunteer">
+                                    Volunteer
+                                </option>
+                                <option value="Freelance">
+                                    Freelance
+                                </option>
+                                <option value="Internship">
+                                    Internship
+                                </option>
+                                <option value="Committee">
+                                    Committee
+                                </option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </label>
+
+                        <label>
+                            Periode
+                            <input
+                                value={experienceForm.period}
+                                onChange={(event) =>
+                                    updateExperienceField(
+                                        "period",
+                                        event.target.value
+                                    )
+                                }
+                                placeholder="Contoh: 2024 – 2025"
+                                required
+                            />
+                        </label>
+
+                        <label>
+                            Urutan tampilan
+                            <input
+                                type="number"
+                                value={experienceForm.display_order}
+                                onChange={(event) =>
+                                    updateExperienceField(
+                                        "display_order",
+                                        event.target.value
+                                    )
+                                }
+                            />
+                        </label>
+                    </div>
+
+                    <label>
+                        Deskripsi
+                        <textarea
+                            rows="4"
+                            value={experienceForm.description}
+                            onChange={(event) =>
+                                updateExperienceField(
+                                    "description",
+                                    event.target.value
+                                )
+                            }
+                            required
+                        />
+                    </label>
+
+                    <label>
+                        Pencapaian / highlight
+                        (satu poin per baris)
+                        <textarea
+                            rows="4"
+                            value={experienceForm.highlights}
+                            onChange={(event) =>
+                                updateExperienceField(
+                                    "highlights",
+                                    event.target.value
+                                )
+                            }
+                            placeholder={
+                                "Mengelola kegiatan organisasi\nMelakukan kurasi karya"
+                            }
+                        />
+                    </label>
+
+                    <div className="admin-actions">
+                        <button
+                            type="submit"
+                            disabled={experienceSaving}
+                        >
+                            {experienceSaving
+                                ? "Menyimpan..."
+                                : editingExperienceId
+                                    ? "Simpan Perubahan"
+                                    : "Tambah Pengalaman"}
+                        </button>
+
+                        {editingExperienceId && (
+                            <button
+                                type="button"
+                                onClick={resetExperienceForm}
+                            >
+                                Batal Edit
+                            </button>
+                        )}
+                    </div>
+                </form>
+
+                <h3>
+                    Daftar Pengalaman ({experiences.length})
+                </h3>
+
+                {experiences.length === 0 && (
+                    <p>Belum ada pengalaman ditambahkan.</p>
+                )}
+
+                {experiences.map((item) => (
+                    <article
+                        className="admin-project"
+                        key={item.id}
+                    >
+                        <div className="admin-project-info">
+                            <strong>
+                                {item.role_title} — {item.organization}
+                            </strong>
+
+                            <span>
+                                {item.period} · {item.exp_type}
+                            </span>
+
+                            <p>{item.description}</p>
+
+                            {Array.isArray(item.highlights) &&
+                                item.highlights.length > 0 && (
+                                    <ul>
+                                        {item.highlights.map(
+                                            (highlight, index) => (
+                                                <li
+                                                    key={`${item.id}-highlight-${index}`}
+                                                >
+                                                    {highlight}
+                                                </li>
+                                            )
+                                        )}
+                                    </ul>
+                                )}
+                        </div>
+
+                        <div className="admin-actions">
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    editExperience(item)
+                                }
+                            >
+                                Edit
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    handleDeleteExperience(item)
+                                }
+                            >
+                                Hapus
+                            </button>
+                        </div>
+                    </article>
+                ))}
+            </section>
+
+            {/* =================================================
+                PROJECT FORM
+                PHOTOGRAPHY = SINGLE PHOTO MODE
+                OTHER CATEGORIES = FULL FORM
+            ================================================= */}
 
             <form
                 className="admin-panel admin-form"
@@ -778,83 +1399,108 @@ export default function Admin() {
                     {editingId ? "Edit Proyek" : "Tambah Proyek"}
                 </h2>
 
+                {isPhotography && (
+                    <p>
+                        Mode Photography: pilih subkategori dan
+                        upload satu foto. Judul dan slug akan
+                        dibuat otomatis dari nama file.
+                    </p>
+                )}
+
                 <div className="admin-fields">
-                    <label>
-                        Judul karya
-                        <input
-                            value={form.title}
-                            onChange={(event) => {
-                                const title = event.target.value;
+                    {/* Judul dan slug hanya untuk kategori lain */}
+                    {!isPhotography && (
+                        <>
+                            <label>
+                                Judul karya
+                                <input
+                                    value={form.title}
+                                    onChange={(event) => {
+                                        const title =
+                                            event.target.value;
 
-                                setForm((previous) => ({
-                                    ...previous,
-                                    title,
-                                    slug: editingId
-                                        ? previous.slug
-                                        : slugify(title),
-                                }));
-                            }}
-                            required
-                        />
-                    </label>
+                                        setForm((previous) => ({
+                                            ...previous,
+                                            title,
+                                            slug: editingId
+                                                ? previous.slug
+                                                : slugify(title),
+                                        }));
+                                    }}
+                                    required
+                                />
+                            </label>
 
-                    <label>
-                        Slug / URL
-                        <input
-                            value={form.slug}
-                            onChange={(event) =>
-                                updateField(
-                                    "slug",
-                                    slugify(event.target.value)
-                                )
-                            }
-                            required
-                        />
-                    </label>
+                            <label>
+                                Slug / URL
+                                <input
+                                    value={form.slug}
+                                    onChange={(event) =>
+                                        updateField(
+                                            "slug",
+                                            slugify(event.target.value)
+                                        )
+                                    }
+                                    required
+                                />
+                            </label>
+                        </>
+                    )}
 
-                    {/* KATEGORI UTAMA */}
+                    {/* Kategori utama selalu ditampilkan */}
                     <label>
                         Kategori Utama
                         <select
                             value={form.main_category}
                             onChange={(event) =>
-                                handleCategoryChange(event.target.value)
+                                handleCategoryChange(
+                                    event.target.value
+                                )
                             }
                             required
                         >
                             <option value="3D Art">3D Art</option>
-                            <option value="Filmmaking">Filmmaking</option>
-                            <option value="Photography">Photography</option>
+                            <option value="Filmmaking">
+                                Filmmaking
+                            </option>
+                            <option value="Photography">
+                                Photography
+                            </option>
                         </select>
                     </label>
 
-                    {/* SUBKATEGORI */}
+                    {/* Subkategori selalu ditampilkan */}
                     <label>
                         Subkategori
                         <select
                             value={form.sub_category}
                             onChange={(event) =>
-                                updateField("sub_category", event.target.value)
+                                updateField(
+                                    "sub_category",
+                                    event.target.value
+                                )
                             }
                             required
                         >
-                            <option value="" disabled>
-                                Pilih subkategori
-                            </option>
-
                             {(categories[form.main_category] || []).map(
                                 (category) => (
-                                    <option key={category} value={category}>
+                                    <option
+                                        key={category}
+                                        value={category}
+                                    >
                                         {category}
                                     </option>
                                 )
                             )}
 
-                            {/* Mempertahankan subkategori lama saat mengedit */}
+                            {/* Pertahankan subkategori lama jika
+                                tidak ada dalam daftar kategori */}
                             {form.sub_category &&
-                                !(categories[form.main_category] || []).includes(
-                                    form.sub_category
-                                ) && (
+                                !(
+                                    categories[
+                                        form.main_category
+                                    ] || []
+                                ).includes(form.sub_category) && (
                                     <option value={form.sub_category}>
                                         {form.sub_category}
                                     </option>
@@ -862,155 +1508,265 @@ export default function Admin() {
                         </select>
                     </label>
 
-                    <label>
-                        Role
-                        <input
-                            value={form.role}
-                            onChange={(event) =>
-                                updateField("role", event.target.value)
-                            }
-                            placeholder="Contoh: 3D Artist"
-                        />
-                    </label>
+                    {/* Field tambahan hanya untuk kategori lain */}
+                    {!isPhotography && (
+                        <>
+                            <label>
+                                Role
+                                <input
+                                    value={form.role}
+                                    onChange={(event) =>
+                                        updateField(
+                                            "role",
+                                            event.target.value
+                                        )
+                                    }
+                                    placeholder="Contoh: 3D Artist"
+                                />
+                            </label>
 
-                    <label>
-                        Tahun
-                        <input
-                            type="number"
-                            value={form.project_year}
-                            onChange={(event) =>
-                                updateField("project_year", event.target.value)
-                            }
-                        />
-                    </label>
+                            <label>
+                                Tahun
+                                <input
+                                    type="number"
+                                    value={form.project_year}
+                                    onChange={(event) =>
+                                        updateField(
+                                            "project_year",
+                                            event.target.value
+                                        )
+                                    }
+                                />
+                            </label>
 
-                    <label>
-                        Tools (pisahkan dengan koma)
-                        <input
-                            value={form.tools}
-                            onChange={(event) =>
-                                updateField("tools", event.target.value)
-                            }
-                            placeholder="Blender, After Effects"
-                        />
-                    </label>
+                            <label>
+                                Tools (pisahkan dengan koma)
+                                <input
+                                    value={form.tools}
+                                    onChange={(event) =>
+                                        updateField(
+                                            "tools",
+                                            event.target.value
+                                        )
+                                    }
+                                    placeholder="Blender, After Effects"
+                                />
+                            </label>
 
-                    <label>
-                        Urutan tampilan
-                        <input
-                            type="number"
-                            value={form.display_order}
-                            onChange={(event) =>
-                                updateField("display_order", event.target.value)
-                            }
-                        />
-                    </label>
+                            <label>
+                                Urutan tampilan
+                                <input
+                                    type="number"
+                                    value={form.display_order}
+                                    onChange={(event) =>
+                                        updateField(
+                                            "display_order",
+                                            event.target.value
+                                        )
+                                    }
+                                />
+                            </label>
+                        </>
+                    )}
                 </div>
 
-                <label>
-                    Deskripsi
-                    <textarea
-                        rows="4"
-                        value={form.description}
-                        onChange={(event) =>
-                            updateField("description", event.target.value)
-                        }
-                    />
-                </label>
+                {/* =================================================
+                    PHOTOGRAPHY FORM
+                ================================================= */}
 
-                <label>
-                    Upload thumbnail karya
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(event) =>
-                            setImage(event.target.files?.[0] || null)
-                        }
-                    />
-                </label>
+                {isPhotography ? (
+                    <>
+                        <label>
+                            Upload satu foto
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(event) => {
+                                    const file =
+                                        event.target.files?.[0] || null;
 
-                {form.thumbnail_url && (
-                    <img
-                        className="admin-preview"
-                        src={form.thumbnail_url}
-                        alt="Thumbnail karya"
-                    />
+                                    setImage(file);
+
+                                    if (file) {
+                                        const title = file.name.replace(
+                                            /\.[^/.]+$/,
+                                            ""
+                                        );
+
+                                        setForm((previous) => ({
+                                            ...previous,
+                                            title,
+                                            slug: editingId
+                                                ? previous.slug
+                                                : slugify(title),
+                                        }));
+                                    }
+                                }}
+                                required={!form.thumbnail_url}
+                            />
+                        </label>
+
+                        {image && (
+                            <p>
+                                Foto dipilih: {image.name}
+                            </p>
+                        )}
+
+                        {form.thumbnail_url && (
+                            <div>
+                                <img
+                                    className="admin-preview"
+                                    src={form.thumbnail_url}
+                                    alt="Foto Photography saat ini"
+                                />
+
+                                {!image && (
+                                    <p>
+                                        Foto saat ini. Upload foto
+                                        baru jika ingin menggantinya.
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <>
+                        {/* =================================================
+                            FULL FORM FOR 3D ART AND FILMMAKING
+                        ================================================= */}
+
+                        <label>
+                            Deskripsi
+                            <textarea
+                                rows="4"
+                                value={form.description}
+                                onChange={(event) =>
+                                    updateField(
+                                        "description",
+                                        event.target.value
+                                    )
+                                }
+                            />
+                        </label>
+
+                        <label>
+                            Upload thumbnail karya
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(event) =>
+                                    setImage(
+                                        event.target.files?.[0] || null
+                                    )
+                                }
+                            />
+                        </label>
+
+                        {form.thumbnail_url && (
+                            <img
+                                className="admin-preview"
+                                src={form.thumbnail_url}
+                                alt="Thumbnail karya"
+                            />
+                        )}
+
+                        <label>
+                            URL thumbnail (opsional)
+                            <input
+                                type="url"
+                                value={form.thumbnail_url}
+                                onChange={(event) =>
+                                    updateField(
+                                        "thumbnail_url",
+                                        event.target.value
+                                    )
+                                }
+                                placeholder="https://..."
+                            />
+                        </label>
+
+                        {form.main_category === "Filmmaking" && (
+                            <label>
+                                Link video Instagram / YouTube
+                                <input
+                                    type="url"
+                                    value={form.video_embed_url}
+                                    onChange={(event) =>
+                                        updateField(
+                                            "video_embed_url",
+                                            event.target.value
+                                        )
+                                    }
+                                    placeholder="https://..."
+                                />
+                            </label>
+                        )}
+
+                        {form.main_category === "Photography" && (
+                            <label>
+                                URL gambar galeri
+                                (satu URL per baris)
+                                <textarea
+                                    rows="4"
+                                    value={form.media_urls}
+                                    onChange={(event) =>
+                                        updateField(
+                                            "media_urls",
+                                            event.target.value
+                                        )
+                                    }
+                                    placeholder={
+                                        "https://...\nhttps://..."
+                                    }
+                                />
+                            </label>
+                        )}
+
+                        <label>
+                            Upload gambar galeri
+                            (opsional, bisa pilih beberapa)
+                            <input
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={(event) =>
+                                    setGalleryImages(
+                                        Array.from(
+                                            event.target.files || []
+                                        )
+                                    )
+                                }
+                            />
+                        </label>
+
+                        {galleryImages.length > 0 && (
+                            <p>
+                                {galleryImages.length} gambar dipilih.
+                            </p>
+                        )}
+                    </>
                 )}
 
-                <label>
-                    URL thumbnail (opsional)
-                    <input
-                        type="url"
-                        value={form.thumbnail_url}
-                        onChange={(event) =>
-                            updateField("thumbnail_url", event.target.value)
-                        }
-                        placeholder="https://..."
-                    />
-                </label>
-
-                {form.main_category === "Filmmaking" && (
-                    <label>
-                        Link video Instagram / YouTube
-                        <input
-                            type="url"
-                            value={form.video_embed_url}
-                            onChange={(event) =>
-                                updateField(
-                                    "video_embed_url",
-                                    event.target.value
-                                )
-                            }
-                            placeholder="https://..."
-                        />
-                    </label>
-                )}
-
-                {form.main_category === "Photography" && (
-                    <label>
-                        URL gambar galeri (satu URL per baris)
-                        <textarea
-                            rows="4"
-                            value={form.media_urls}
-                            onChange={(event) =>
-                                updateField("media_urls", event.target.value)
-                            }
-                            placeholder={"https://...\nhttps://..."}
-                        />
-                    </label>
-                )}
-
-                <label>
-                    Upload gambar galeri (opsional, bisa pilih beberapa)
-                    <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={(event) =>
-                            setGalleryImages(
-                                Array.from(event.target.files || [])
-                            )
-                        }
-                    />
-                </label>
-
-                {galleryImages.length > 0 && (
-                    <p>{galleryImages.length} gambar dipilih.</p>
-                )}
-
+                {/* Pilihan proyek unggulan tetap tersedia */}
                 <label className="admin-checkbox">
                     <input
                         type="checkbox"
                         checked={form.is_featured}
                         onChange={(event) =>
-                            updateField("is_featured", event.target.checked)
+                            updateField(
+                                "is_featured",
+                                event.target.checked
+                            )
                         }
                     />
                     Proyek unggulan
                 </label>
 
                 <div className="admin-actions">
-                    <button type="submit" disabled={saving}>
+                    <button
+                        type="submit"
+                        disabled={saving}
+                    >
                         {saving
                             ? "Menyimpan..."
                             : editingId
@@ -1019,37 +1775,62 @@ export default function Admin() {
                     </button>
 
                     {editingId && (
-                        <button type="button" onClick={resetForm}>
+                        <button
+                            type="button"
+                            onClick={resetForm}
+                        >
                             Batal Edit
                         </button>
                     )}
                 </div>
             </form>
 
+            {/* =================================================
+                PROJECT LIST
+            ================================================= */}
+
             <section className="admin-panel">
-                <h2>Daftar Proyek ({projects.length})</h2>
+                <h2>
+                    Daftar Proyek ({projects.length})
+                </h2>
 
                 <label>
                     Filter kategori
                     <select
                         value={filter}
-                        onChange={(event) => setFilter(event.target.value)}
+                        onChange={(event) =>
+                            setFilter(event.target.value)
+                        }
                     >
-                        <option value="Semua">Semua kategori</option>
+                        <option value="Semua">
+                            Semua kategori
+                        </option>
                         <option value="3D Art">3D Art</option>
-                        <option value="Filmmaking">Filmmaking</option>
-                        <option value="Photography">Photography</option>
+                        <option value="Filmmaking">
+                            Filmmaking
+                        </option>
+                        <option value="Photography">
+                            Photography
+                        </option>
                     </select>
                 </label>
 
                 {visibleProjects.length === 0 && (
-                    <p>Belum ada proyek pada kategori ini.</p>
+                    <p>
+                        Belum ada proyek pada kategori ini.
+                    </p>
                 )}
 
                 {visibleProjects.map((project) => (
-                    <article className="admin-project" key={project.id}>
+                    <article
+                        className="admin-project"
+                        key={project.id}
+                    >
                         {project.thumbnail_url && (
-                            <img src={project.thumbnail_url} alt="" />
+                            <img
+                                src={project.thumbnail_url}
+                                alt=""
+                            />
                         )}
 
                         <div className="admin-project-info">
@@ -1078,14 +1859,18 @@ export default function Admin() {
                         <div className="admin-actions">
                             <button
                                 type="button"
-                                onClick={() => editProject(project)}
+                                onClick={() =>
+                                    editProject(project)
+                                }
                             >
                                 Edit
                             </button>
 
                             <button
                                 type="button"
-                                onClick={() => handleDelete(project)}
+                                onClick={() =>
+                                    handleDelete(project)
+                                }
                             >
                                 Hapus
                             </button>
